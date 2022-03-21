@@ -1,2 +1,2 @@
 # RiggingTools_Blender
-Some operations meant to make the some of the rigging process faster.
+Some operations meant to make the the rigging process faster.
