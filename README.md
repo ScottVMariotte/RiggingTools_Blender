@@ -7,21 +7,20 @@ Focusing on cleaning up the existing code and tools to make them more intuitive 
 After that I will look into adding more operations.
 # Operations
 
-**Bone Curve -**
-Takes selected curve and turns it into a bone chain. Default distrobution of points is same as blender but you can have the bones evenly placed by checking the box.
-**Snap Bones To Curve-**
-Snaps selected bones in edit mode to the selected curve. You can have them placed to the closest point on the curve or evenly along the curve.
-**Gen Bone Chain From Bones-**
-Takes selected bones and extrudes control bones. The selected bones are then constrained to the control bones creating a stretchy chain.
-**Gen Eye Bones-**
-Generates eye bones based on the selected points in the eye mesh. The goal to make this work is to select vertices whose positions will average out to the center of the eye. Lastly, select the center of the pupil and run the operation. Three bones should be created pointing in the direction of the pupil and originating from the center of the eye.
-**Add Twist Constraints-**
-Adds a series of rotation constraints to selected bones to create a twist chain. The actively selected bone acts as the target. You can reverse the direction of the chain by checking the "head? "box.
-**Add Many Constraints-**
-Uses the active bone as a target and constrains all other selected bones. You can set the influence in the menue.
-**Toggle Constraints and Remove Constraints-**
-Toggle allows you to check whether you want the constraints on selected bones to be on or off. 
-Remove just removes all constraints on selected objects.
+ - **Bone Curve -**
+	 - Takes selected curve and turns it into a bone chain. Default distrobution of points is same as 	blender but you can have the bones evenly placed by checking the box.
+ - **Snap Bones To Curve-**
+	 - Snaps selected bones in edit mode to the selected curve. You can have them placed to the closest point on the curve or evenly along the curve.
+ - **Gen Bone Chain From Bones-**
+	 - Takes selected bones and extrudes control bones. The selected bones are then constrained to the control bones creating a stretchy chain.
+ - **Gen Eye Bones-**
+	 - Generates eye bones based on the selected points in the eye mesh. The goal to make this work is to select vertices whose positions will average out to the center of the eye. Lastly, select the center of the pupil and run the operation. Three bones should be created pointing in the direction of the pupil and originating from the center of the eye.
+ - **Add Twist Constraints-**
+	- Adds a series of rotation constraints to selected bones to create a twist chain. The actively selected bone acts as the target. You can reverse the direction of the chain by checking the "head? "box.
+ - **Add Many Constraints-**
+	- Uses the active bone as a target and constrains all other selected bones. You can set the influence in the menue.
+ - **Toggle Constraints and Remove Constraints-**
+	 -  Toggle allows you to check whether you want the constraints on selected bones to be on or off. Remove just removes all constraints on selected objects.
 
 #
 
