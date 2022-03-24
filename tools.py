@@ -124,9 +124,8 @@ class ArmatureTools:
             if(size == None):#gets size of first set
                 size = len(set)
             
-            halt = (sameSize and (len(set) != size)) or (stopBranch and len(child) > 1)
-            
-            if(halt):
+            if(sameSize and (len(set) != size)) or ((stopBranch and child in bones and len(child) > 1)):
+                print((stopBranch and len(child) > 1))
                 return []
             
             boneSets.append(set)
@@ -255,7 +254,6 @@ class PointTools:
     def gen_points_from_bones(cls, bones, offset = 1):
         points = []
         points.append(bones[0].head)
-
         numPoints = int(len(bones) / offset)
         for i in range(1,numPoints+1):
             index = int((i * offset)) - 1
@@ -281,7 +279,7 @@ class PointTools:
         return points
 
     @classmethod
-    def bezier_points_translate_space(cls, bPoints, local, other):
+    def bPoints_translate_space(cls, bPoints, local, other):
         mat = SimpleMaths.get_space_transform_mat(local, other)
         for bp in bPoints:
             bp.handle_right = mat @ bp.handle_right
@@ -296,16 +294,16 @@ class PointTools:
             LUTResolution = resolution
 
             LUTS = []
-            points = cls.bezier_points_to_curve(bPoints, LUTResolution)
+            points = cls.gen_points_from_bPoints(bPoints, LUTResolution)
             #calculating cumulative distance from point to point along each curve segment
             for i in range(numBezSegments):
                 LUT = [0.0]              #cumulative distnace values get put here
-                for j in range(LUTResolution):
+                for j in range(LUTResolution-1):
                     index = (i * (LUTResolution)) + j
                     distance = math.dist(points[index],points[index + 1]) + LUT[j]
                     LUT.append(distance)
                 LUTS.append(LUT)
-
+            
             #values for next part of curve gen
             points = []
             curveLength = cls.__distance_of_LUTS(LUTS)
@@ -327,6 +325,8 @@ class PointTools:
                 distance = i * delta
 
                 newLUTIndex = cls.__distance_to_Lut_Index(LUTS, distance)#get the relevant distnace table index
+                print(delta)
+                print(newLUTIndex)
                 if(newLUTIndex != LUTIndex):#if we pass into a new distance table we need to update cumulative distance
                     LUTdistance += LUTS[LUTIndex][LUTResolution-1]
                     LUTIndex = newLUTIndex

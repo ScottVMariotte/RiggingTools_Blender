@@ -6,7 +6,8 @@ import re
 
 from . tools import *
 
-#TODO: Operators : Constraint Programming
+#TODO: Operators : Constraint Programming, parent bones by distance
+#Bugs: Fix/remove snap bones to curve even
 #CLEAN : ... more intuitive and cohesive naming,  cohesive poll methods
 
 class Toggle_Constraints(bpy.types.Operator):
@@ -116,7 +117,8 @@ class Add_Twist_Constraints(bpy.types.Operator):
             bones = context.selected_editable_bones if objActive.mode == "EDIT" else context.selected_pose_bones
             sets = ArmatureTools.get_contiguous_sets(bones)
             numSets = len(sets)
-            
+            print(numSets)
+            print(numSets == len(bones) or (numSets == 2) )
             return numSets == len(bones) or (numSets == 2) 
         return False
 
@@ -203,12 +205,14 @@ class Gen_Eye_Bones(bpy.types.Operator):
             if v.select:
                 selectedVerts.append(v)
 
-        return meshSelected and armatureSelected and self.objMesh.data and len(selectedVerts > 1)
+        return meshSelected and armatureSelected and len(selectedVerts) > 0
 
     def execute(self, context):
         #Blender version is 2.Required when 73 or above
         if bpy.app.version[0] >= 2 and bpy.app.version[1] >= 73:
             bm.verts.ensure_lookup_table()
+
+        initMode = self.objArmature.mode
 
         bpy.ops.object.mode_set(mode='EDIT')
         bm = bmesh.from_edit_mesh(self.objMesh.data)
@@ -248,7 +252,12 @@ class Gen_Eye_Bones(bpy.types.Operator):
         )
 
         boneLidD.transform(mat)
-        mat.transpose()
+        
+        mat = (mathutils.Matrix.Translation(boneEye.head) @
+            mathutils.Matrix.Rotation(math.radians(10), 4, x) @
+            mathutils.Matrix.Translation(-boneEye.head)
+        )
+
         boneLidU.transform(mat)
 
         bpy.ops.object.mode_set(mode='POSE')
@@ -270,6 +279,8 @@ class Gen_Eye_Bones(bpy.types.Operator):
         constraint.target_space = "LOCAL"
         constraint.owner_space = "LOCAL"
         constraint.influence = .5
+
+        bpy.ops.object.mode_set(mode=initMode)
 
         return {"FINISHED"}
 
@@ -302,6 +313,8 @@ class Gen_Constrain_Bones(bpy.types.Operator):
     prefix: bpy.props.StringProperty(name="Preffix")
     suffix: bpy.props.StringProperty(name="Suffix")
 
+    removeParents: bpy.props.BoolProperty(name="Remove Parents?")
+
     numBones: bpy.props.EnumProperty(items=getNumBones, name='Num Bones', description = "Choose object here")
 
     @classmethod
@@ -320,12 +333,11 @@ class Gen_Constrain_Bones(bpy.types.Operator):
         selectedBones = context.selected_editable_bones
         numNewBones = int(self.numBones)
         offset = int(len(selectedBones) / numNewBones)
-
-        #Sort selected (head to tail) bones and get the names
         connected = ArmatureTools.is_contiguous_branchless(selectedBones)
         selected = ArmatureTools.get_sorted(selectedBones) if connected else selectedBones
-        
         points = PointTools.gen_points_from_bones(selected, offset = offset)
+
+
         selectedNames = ArmatureTools.get_bone_names(selected)
         
         rolls = []
@@ -336,24 +348,30 @@ class Gen_Constrain_Bones(bpy.types.Operator):
             rolls.append(selected[offIndex].roll)
         
         editBones = self.objArmature.data.edit_bones
+        
         newBones = ArmatureTools.gen_bones_along_points(editBones, points, newNames, self.prefix, self.suffix, rolls = rolls)
+
+        if(self.removeParents):
+            for bone in selected:
+                bone.parent = None
 
         bpy.ops.object.mode_set(mode='POSE')
         poseBones = self.objArmature.pose.bones
         for i in range(numNewBones):
             offIndex = offset * i
-
             boneTarget = newBones[i]
-            for j in range(((offset-1) * (not connected)) + 1):
+            numRange = ((offset-1) * (self.removeParents)) + 1
+            print(numRange)
+            for j in range(numRange):
                 boneConstrained = poseBones[poseBones.find(selectedNames[offIndex + j])]
                 constraint = boneConstrained.constraints.new('COPY_TRANSFORMS')
                 constraint.target = self.objArmature
                 constraint.subtarget = boneTarget
-
+                constraint.head_tail = (j * (1/(numRange)))
 
         bpy.ops.object.mode_set(mode=initMode)
         return {"FINISHED"}
-
+    
     def invoke(self, context, event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
@@ -379,6 +397,7 @@ class Snap_Bones_to_Curve(bpy.types.Operator):
         self.bones = context.selected_editable_bones
 
     options = [("Even","Even",""),("Closest","Closest Points","")]
+    #options = [("Closest","Closest Points","")] 
 
     snapType: bpy.props.EnumProperty(items=options, name='Snap Type', description = "How the bones should snap to curve")
     draw: bpy.props.BoolProperty(name='Draw')
@@ -431,7 +450,7 @@ class Snap_Bones_to_Curve(bpy.types.Operator):
             #get the points along each curve
             sparsePoints = PointTools.gen_points_from_bPoints(bPoints, sparseResolution, evenDistribution = True)
             densePoints = PointTools.gen_points_from_bPoints(bPoints, denseResolution, evenDistribution = True)
-            bonePoints = PointTools.gen_points_from_bPoints(self.bones)#points that represent bones
+            bonePoints = PointTools.gen_points_from_bones(self.bones)#points that represent bones
             
             #update resolutions to hold length of points list
             sparseResolution = int(sparseResolution * numCurveSegments)
@@ -679,7 +698,6 @@ class Gen_Bone_Curve(bpy.types.Operator):
             curve = curve or obj.type == "CURVE"
             armature = armature or obj.type == "ARMATURE"
         
-        print(((numObjs == 2) and (curve and armature)) or ((numObjs == 1) and curve))
         return (((numObjs == 2) and (curve and armature)) or ((numObjs == 1) and curve))
 
     def execute(self, context):
@@ -709,6 +727,7 @@ class Gen_Bone_Curve(bpy.types.Operator):
         PointTools.bPoints_translate_space(bPoints, self.objCurve, self.objArmature)
 
         curvePoints = PointTools.gen_points_from_bPoints(bPoints, resolution, evenDistribution = self.even, forBones = True)
+
         bpy.ops.object.mode_set(mode='EDIT')
         ArmatureTools.gen_bones_along_points(self.objArmature.data.edit_bones, curvePoints, self.name, self.preffix, self.suffix)
 
