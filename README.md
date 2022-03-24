@@ -21,8 +21,10 @@ After that I will look into adding more operations.
 	- Uses the active bone as a target and constrains all other selected bones. You can set the influence in the menue.
  - **Toggle Constraints and Remove Constraints-**
 	 -  Toggle allows you to check whether you want the constraints on selected bones to be on or off. Remove just removes all constraints on selected objects.
-	 -  
-(Plan on getting a video up at some points I know the pictures kinda suck...)
+
+
+
+>>>>(Plan on getting a video up at some points I know the pictures kinda suck...)<<<<
 
 # Bone Curve 
 ![2022-03-24 18_06_44-Blender](https://user-images.githubusercontent.com/102049585/160018603-8811c026-623a-4441-8407-378873b69c29.png)
