@@ -24,7 +24,7 @@ After that I will look into adding more operations.
 
 
 
->>>>(Plan on getting a video up at some points I know the pictures kinda suck...)<<<<
+--(Plan on getting a video up at some points I know the pictures kinda suck...)--
 
 # Bone Curve 
 ![2022-03-24 18_06_44-Blender](https://user-images.githubusercontent.com/102049585/160018603-8811c026-623a-4441-8407-378873b69c29.png)
