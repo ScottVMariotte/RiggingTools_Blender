@@ -6,6 +6,8 @@ import re
 
 from . tools import *
 
+
+
 #TODO: Operators : Constraint Programming, parent bones by distance
 #Bugs: Fix/remove snap bones to curve even
 #CLEAN : ... more intuitive and cohesive naming,  cohesive poll methods
@@ -19,10 +21,7 @@ class Toggle_Constraints(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (context.active_object != None and 
-                context.active_object.type == "ARMATURE" and
-                context.active_object.mode == "POSE" and
-                len(context.selected_pose_bones) > 0)
+        return tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "POSE", numObjs = 1)
     
     def execute(self, context):
         selected = context.selected_pose_bones
@@ -42,10 +41,7 @@ class Remove_Constraints(bpy.types.Operator):
     
     @classmethod
     def poll(cls, context):
-        return (context.active_object != None and 
-                context.active_object.type == "ARMATURE" and 
-                context.active_object.mode == "POSE" and 
-                len(context.selected_pose_bones) > 0)
+        return tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "POSE", numObjs = 1)
 
     def execute(self, context):
         selected = context.selected_pose_bones
@@ -73,9 +69,7 @@ class Add_Many_Constraints(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (context.active_object != None and 
-                context.active_object.type == "ARMATURE" and 
-                context.active_object.mode == "POSE" and 
+        return (tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "POSE", numObjs = 1) and 
                 len(context.selected_pose_bones) > 2)
 
     def execute(self, context):
@@ -112,15 +106,12 @@ class Add_Twist_Constraints(bpy.types.Operator):
     
     @classmethod
     def poll(cls, context):
-        objActive = context.active_object
-        if(objActive != None and objActive.type == "ARMATURE" and objActive.mode != "OBJECT"):
-            bones = context.selected_editable_bones if objActive.mode == "EDIT" else context.selected_pose_bones
+        checkObject = tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "POSE", numObjs = 1)
+        if(checkObject):
+            bones = context.selected_pose_bones
             sets = ArmatureTools.get_contiguous_sets(bones)
-            numSets = len(sets)
-            print(numSets)
-            print(numSets == len(bones) or (numSets == 2) )
-            return numSets == len(bones) or (numSets == 2) 
-        return False
+            return len(sets) == len(bones) or len(sets) == 2
+        return False 
 
     def execute(self, context):
         initMode = context.active_object.mode
@@ -186,26 +177,15 @@ class Gen_Eye_Bones(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        numObjs = len(context.selected_objects)
-        if(len(context.selected_objects) != 2): 
-            return False
-        
-        meshSelected = False
-        armatureSelected = False
-        for i in range(numObjs):
-            obj = context.selected_objects[i]
-            meshSelected = meshSelected or obj.type == "MESH"
-            armatureSelected = armatureSelected or obj.type == "ARMATURE"
-        
-        if(not meshSelected or not armatureSelected or bpy.context.active_object.type != "MESH"):
-            return False
+        checkObjects = tools.poll.check_poll(types = "ARMATURE,MESH",activeType = "ARMATURE", activeMode = "EDIT", numObjs = 2)
+        if(checkObjects):
+            count = 0
+            for v in bpy.context.active_object.data.vertices:
+                count += v.select
+                if(count > 1):
+                    return True
 
-        selectedVerts = []
-        for v in bpy.context.active_object.data.vertices:
-            if v.select:
-                selectedVerts.append(v)
-
-        return meshSelected and armatureSelected and len(selectedVerts) > 0
+        return False
 
     def execute(self, context):
         #Blender version is 2.Required when 73 or above
@@ -319,12 +299,7 @@ class Gen_Constrain_Bones(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        objArmature = context.active_object
-        if(objArmature == None or objArmature.type != "ARMATURE" or objArmature.mode == "OBJECT"): 
-            return False
-
-        numBones = len(context.selected_editable_bones) if objArmature.mode == "EDIT" else len(context.selected_pose_bones)
-        return numBones > 0
+        return tools.poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT") and len(context.selected_pose_bones) > 0
 
     def execute(self, context):
         initMode = self.objArmature.mode
@@ -404,18 +379,8 @@ class Snap_Bones_to_Curve(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        numObjs = len(context.selected_objects)
-        if(numObjs != 2): 
-            return False
-        
-        curve = False
-        armature = False
-        for i in range(numObjs):
-            obj = context.selected_objects[i]
-            curve = curve or obj.type == "CURVE"
-            armature = armature or obj.type == "ARMATURE"
-    
-        return curve and armature and bpy.context.active_object.type  == "ARMATURE" and bpy.context.active_object.mode == "EDIT"
+        return (tools.poll.check_poll(types = "ARMATURE,CURVE", activeType = "ARMATURE", activeMode = "EDIT", numObjs = 2) and 
+                len(context.selected_editable_bones) > 0)
 
     def execute(self, context):
         spline = self.objCurve.data.splines[0]#each spline is a separate curve in the object
@@ -518,16 +483,9 @@ class Gen_Bone_Chain_From_Bones(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        if(context.active_object == None): 
-            return False
-
-        armature = context.active_object
-        if(armature.type == "ARMATURE" and armature.mode != "OBJECT"):
-
-            selected = context.selected_editable_bones if armature.mode == "EDIT" else context.selected_pose_bones
-            contiguos = ArmatureTools.is_contiguous_branchless(selected)
-
-            return len(selected) > 0 and contiguos
+            return (tools.poll.check_poll(types = "ARMATURE", activeMode = "EDIT") and 
+                    len(context.selected_editable_bones) > 0 and 
+                    ArmatureTools.is_contiguous_branchless(selected))
 
     def execute(self, context):
         objArmature = context.active_object
@@ -603,14 +561,11 @@ class Gen_Bone_Chain(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        if(context.active_object == None): 
-            return False
+        tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "EDIT")
 
-        obj = context.active_object
-        isArm = (obj is not None) and (obj.type == "ARMATURE")
         
-        return isArm and (((obj.mode == 'EDIT') and (len(context.selected_editable_bones) > 0)) or 
-                         ((obj.mode == 'POSE') and (len(context.selected_pose_bones) > 0)))
+        return (tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "EDIT") and 
+                len(context.selected_editable_bones) > 0)
 
     def execute(self, context):
         if(self.numBones <= 0 or self.chainName == ""):
@@ -687,18 +642,7 @@ class Gen_Bone_Curve(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        numObjs = len(context.selected_objects)
-        if(numObjs < 1 or numObjs > 2): return False
-        
-        curve = False
-        armature = False
-        
-        for i in range(numObjs):
-            obj = context.selected_objects[i]
-            curve = curve or obj.type == "CURVE"
-            armature = armature or obj.type == "ARMATURE"
-        
-        return (((numObjs == 2) and (curve and armature)) or ((numObjs == 1) and curve))
+        return tools.poll.check_poll(types = "ARMATURE,CURVE", typeActive = "ARMATURE", activeMode = "EDIT", numObjs = 2)
 
     def execute(self, context):
         if(self.numBones == 0):
