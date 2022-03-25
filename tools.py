@@ -51,6 +51,61 @@ class BezierPoint:
             points.append(cls(bPoint = bPoints[i]))
         return points
 
+class Poll:
+
+    @classmethod
+    def selected_types(cls, types):
+        dic = dictionary.fromkeys(types,[])
+        for obj in bpy.context.selectable_objects:
+            if(dic.has_key(obj.type)):
+                dic[t].append(obj)
+        
+        objs = []
+        for t in types:
+            objs.append(dic[t])
+        
+        return objs
+    
+    @classmethod
+    def num_objects():
+        return len(bpy.context.selectable_objects)
+
+    @classmethod
+    def is_types_selected(cls, types):
+        if(types == ""):
+            return True
+
+        types = types.split(',')
+        count = 0
+        objs = bpy.context.selectable_objects
+        for obj in objs:
+            if(obj.type == types):
+                types.remove(types)
+
+        return len(types) == 0
+
+    @classmethod
+    def is_type_active(cls, t):
+        return bpy.context.active_object.type == t or t == ""
+
+    @classmethod
+    def is_active_mode(cls, mode):
+        return bpy.active_object.mode == mode or mode == ""
+
+    @classmethod
+    def is_active_none():
+        return bpy.context.active_object == None
+
+    @classmethod
+    def check_poll(cls, types = "", typeActive = "", activeMode = "", numObjs = -1):
+        return (
+                not cls.is_active_none() and
+                (cls.num_objects() == numObjs or numObjs == -1) and
+                cls.is_types_selected(types) and 
+                cls.is_type_active(typeActive) and 
+                cls.is_active_mode(activeMode)
+                )
+
 class ArmatureTools:
 
     @classmethod
@@ -185,7 +240,6 @@ class PointTools:
     @classmethod
     def __distance_to_T(cls, LUT, distance):
         n = len(LUT)
-        Length = LUT[n - 1]
         
         for i in range(n-1):
             prevDist = LUT[i]
@@ -208,15 +262,6 @@ class PointTools:
             if(dist <= cumulative):
                 return i
         return numLUTS-1
-
-    @classmethod
-    def __distance_of_LUTS(cls, LUTS):
-        distance = 0
-        numBezSegments = len(LUTS)
-        LUTResolution = len(LUTS[0])
-        for i in range(numBezSegments):
-            distance += LUTS[i][LUTResolution-1]
-        return distance
 
     @classmethod
     def gen_points_from_bones(cls, bones, offset = 1):
@@ -285,8 +330,9 @@ class PointTools:
         numBezSegments = len(bPoints) - 1
         if(evenDistribution):        
             LUTResolution = resolution
-
             LUTS = []
+
+            curveLength = 0
             points = cls.gen_points_from_bPoints(bPoints, LUTResolution)
             #calculating cumulative distance from point to point along each curve segment
             for i in range(numBezSegments):
@@ -296,11 +342,9 @@ class PointTools:
                     distance = math.dist(points[index],points[index + 1]) + LUT[j]
                     LUT.append(distance)
                 LUTS.append(LUT)
-            
-            #values for next part of curve gen
+                curveLength += LUT[-1]
             points = []
-            curveLength = cls.__distance_of_LUTS(LUTS)
-
+            
             delta = curveLength / (resolution * numBezSegments)
             resolution = (resolution * numBezSegments) + numBezSegments
 
@@ -318,8 +362,6 @@ class PointTools:
                 distance = i * delta
 
                 newLUTIndex = cls.__distance_to_Lut_Index(LUTS, distance)#get the relevant distnace table index
-                print(delta)
-                print(newLUTIndex)
                 if(newLUTIndex != LUTIndex):#if we pass into a new distance table we need to update cumulative distance
                     LUTdistance += LUTS[LUTIndex][LUTResolution-1]
                     LUTIndex = newLUTIndex
@@ -331,7 +373,18 @@ class PointTools:
 
                 distance -= LUTdistance
 
-                points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, cls.__distance_to_T(LUTS[LUTIndex], distance)))
+                t = 1.0
+                #search through LUT and find t value
+                for i in range(LUTResolution-1):
+                    prevDist = LUT[i]
+                    nextDist = LUT[i+1]
+                    if(prevDist <= distance < nextDist):
+                        prevT = i / (n - 1.0)
+                        nextT = (i + 1.0) / (n - 1.0)
+                        t = (distance - prevDist) / (nextDist - prevDist)
+                        t = ((1.0 - t) * prevT) + (t * nextT)
+
+                points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, t))
 
         else:
             
