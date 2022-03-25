@@ -40,9 +40,9 @@ class BezierPoint:
             self.handle_left = bPoint.handle_left.copy()
             self.co = bPoint.co.copy()
         else:
-            self.handle_right = handle_right
-            self.handle_left = handle_left
-            self.co = co
+            self.handle_right = handle_right.copy()
+            self.handle_left = handle_left.copy()
+            self.co = co.copy()
     
     @classmethod
     def copyList(cls, bPoints):
@@ -58,10 +58,22 @@ class ArmatureTools:
         return re.sub(r'.\d','',name)
 
     @classmethod
-    def gen_bone_name(cls, prifix, name, suffix, num):
-        return prifix + name + suffix + "." + str(num).zfill(3)
-        #return prifix + name + suffix + zFill 000
-        #update blenderOps code to use this function
+    def gen_bone_name(cls, prifix, name, suffix, num = -1):
+        subNames = name.split()
+
+        newName = prifix
+        for i in range(len(subNames) - 1):
+            newName += subNames[i] + "."
+
+        if(num >= 0):#if we have a number to add to the end
+            if(len(re.search('[a-zA-Z]', subNames[-1])) > 0):#if the last subName has characters we want to include it
+                newName += subNames[-1] + "." + suffix + "." + str(num).zfill(3)
+            else:
+                newName += suffix + "." + str(num).zfill(3)
+        else:
+            newName += suffix + "." + subNames[-1]
+
+        return newName
 
     @classmethod
     def get_chain_head(cls, bones):
@@ -70,20 +82,21 @@ class ArmatureTools:
         while(parent in bones):
             head = parent
             parent = head.parent
-                
+        
         return head
 
     @classmethod
     def get_sorted(cls, bones):
-        if(cls.is_contiguous_branchless(bones)):
-            top = cls.get_chain_head(bones)
-            children = top.children_recursive[:len(bones)-1]
-            sortedBones = [top]
-            sortedBones.extend(children)
-            return sortedBones
-        else:
+        if(not cls.is_contiguous_branchless(bones)):
+            raise "Error in " + __name__ + " : bone chain is not contiguous and branchless!"
             return bones
-    
+
+        top = cls.get_chain_head(bones)
+        children = top.children_recursive[:len(bones)-1]
+        sortedBones = [top]
+        sortedBones.extend(children)
+        return sortedBones
+  
     @classmethod
     def get_bone_names(cls, bones):
         names = []
@@ -103,33 +116,24 @@ class ArmatureTools:
             tail = child[0]
             child = tail.children
 
-        return count == len(bones) and len(child) <= 1
+        return count == len(bones)
 
     @classmethod
-    def get_contiguous_sets(cls, bones, sameSize = False, stopBranch = True):
+    def get_contiguous_sets(cls, bones):
         boneSets = []
-        size = None
         bones = bones.copy()
         while(len(bones) > 0):
-            #ToDo: remove set from bones and find next set
             bone = cls.get_chain_head(bones)
-            set = [bone]
-            child = bone.children
+            children = bone.children_recursive
+            subSet = [bone]
+
             bones.remove(bone)
-            while(len(child) == 1 and child[0] in bones):
-                bone = child[0]
-                bones.remove(bone)
-                set.append(bone)
-                child = bone.children
-            if(size == None):#gets size of first set
-                size = len(set)
+            for i in range(len(children)):
+                child = children[i]
+                if(child in bones):
+                    subSet.append(child)
+                    bones.remove[child]
             
-            if(sameSize and (len(set) != size)) or ((stopBranch and child in bones and len(child) > 1)):
-                print((stopBranch and len(child) > 1))
-                return []
-            
-            boneSets.append(set)
-                
         return boneSets
 
     @classmethod
@@ -147,48 +151,14 @@ class ArmatureTools:
             bones[i].tail = points[i+1]
 
     @classmethod
-    def gen_bones_tangent_to_points(cls, editBones, points, direction, size, name, prefix, suffix):
-        isList = type(direction) == list
-        startDir = direction.copy()
-        length = len(points)
+    def gen_bones_along_points(cls, editBones, points, names, parents = True, useConnect = True, rolls = 0):
         bones = []
 
-        if(isList):
-            direction = startDir[0]
-        length = len(points)
-        for i in range(length):
-            newName = prefix + name + suffix + "." + str(i).zfill(3)
-            bones.append(newName)
-
-            if(isList and i != 0):
-                if(i < length - 1):
-                    direction = startDir[i].copy()
-                    direction += startDir[i-1]
-                    direction = direction.normalized()
-                else:
-                    direction = startDir[len(startDir)-1]
-   
-
-            bone = editBones.new(newName)
-            bone.head = points[i]
-            bone.tail = bone.head + (direction * size)
-
-        if(isList):
-            direction = startDir[0]
-
-        return bones
-
-    @classmethod
-    def gen_bones_along_points(cls, editBones, points, names, prefix, suffix, parents = True, useConnect = True, rolls = 0):
-        bones = []
-
-        name = ""
         boneLast = None
         for i in range(len(points) - 1):
-            newName = prefix + names[i] + suffix if (type(names) == list) else prefix + names + suffix 
+            newName = names[i]
             roll = rolls[i] if (type(rolls) == list) else rolls
 
-            newName = newName if (type(names) == list) else newName + "." + str(i).zfill(3)
             bones.append(newName)
             bone = editBones.new(newName)
             bone.head = points[i]
@@ -200,8 +170,6 @@ class ArmatureTools:
                 bone.use_connect = useConnect
 
             boneLast = bone
-
-        return bones
 
 class PointTools:
     
@@ -271,6 +239,31 @@ class PointTools:
         return points
     
     @classmethod
+    def gen_points_tangent_to_points(cls, points, directions, distance, includeOriginal = False, avrageDirections = False):
+        newPoints = []
+        numPoints = len(points)
+        dirSingle = type(directions) != list
+        if(dirSingle and len(points) > directions):
+            raise "Error in " + __name__ + " : number of direction vectors is less than number of points!"
+            return points
+        
+        for i in range(numPoints):
+            if(dirSingle):
+                direction = directions
+            elif(avrageDirections):
+                direction = directions[i].copy()
+                direction += directions[i-1]
+                direction = direction.normalized()
+            else:
+                direction = directions[i]
+        
+        if(includeOriginal):
+            newPoints.append(points[i])
+        newPoints.append(points[i] + (direction * size))
+        
+        return points
+
+    @classmethod
     def points_translate_space(cls, points, local, other):
         mat = SimpleMaths.get_space_transform_mat(local, other)
         for point in points:
@@ -298,7 +291,7 @@ class PointTools:
             #calculating cumulative distance from point to point along each curve segment
             for i in range(numBezSegments):
                 LUT = [0.0]              #cumulative distnace values get put here
-                for j in range(LUTResolution-1):
+                for j in range(LUTResolution):
                     index = (i * (LUTResolution)) + j
                     distance = math.dist(points[index],points[index + 1]) + LUT[j]
                     LUT.append(distance)
@@ -377,4 +370,3 @@ class PointTools:
         for i in range(len(points) - 1):
             distance += math.dist(points[i], points[i+1])
         return distance
-
