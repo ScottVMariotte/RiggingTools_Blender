@@ -67,22 +67,23 @@ class Poll:
         return objs
     
     @classmethod
-    def num_objects():
-        return len(bpy.context.selectable_objects)
+    def num_objects(cls):
+        return len(bpy.context.selected_editable_objects)
 
     @classmethod
     def is_types_selected(cls, types):
         if(types == ""):
             return True
 
-        types = types.split(',')
         count = 0
-        objs = bpy.context.selectable_objects
-        for obj in objs:
-            if(obj.type == types):
-                types.remove(types)
+        types = types.split(',')
+        for t in types:
+            for obj in bpy.context.selected_editable_objects:
+                if(obj.type == t):
+                    count += 1
+                    break
 
-        return len(types) == 0
+        return len(types) == count
 
     @classmethod
     def is_type_active(cls, t):
@@ -90,19 +91,19 @@ class Poll:
 
     @classmethod
     def is_active_mode(cls, mode):
-        return bpy.active_object.mode == mode or mode == ""
+        return bpy.context.active_object.mode == mode or mode == ""
 
     @classmethod
-    def is_active_none():
+    def is_active_none(cls):
         return bpy.context.active_object == None
 
     @classmethod
-    def check_poll(cls, types = "", typeActive = "", activeMode = "", numObjs = -1):
+    def check_poll(cls, types = "", activeType = "", activeMode = "", numObjs = -1):
         return (
                 not cls.is_active_none() and
                 (cls.num_objects() == numObjs or numObjs == -1) and
                 cls.is_types_selected(types) and 
-                cls.is_type_active(typeActive) and 
+                cls.is_type_active(activeType) and 
                 cls.is_active_mode(activeMode)
                 )
 
@@ -113,22 +114,50 @@ class ArmatureTools:
         return re.sub(r'.\d','',name)
 
     @classmethod
-    def gen_bone_name(cls, prifix, name, suffix, num = -1):
+    def gen_bone_name(cls, prefix, name, suffix, num = 0):
         subNames = name.split()
-
-        newName = prifix
+        newName = prefix
         for i in range(len(subNames) - 1):
             newName += subNames[i] + "."
 
-        if(num >= 0):#if we have a number to add to the end
-            if(len(re.search('[a-zA-Z]', subNames[-1])) > 0):#if the last subName has characters we want to include it
-                newName += subNames[-1] + "." + suffix + "." + str(num).zfill(3)
+        if(num > 0):#if we have a number to add to the end
+            if(re.search('[a-zA-Z]', subNames[-1])):#if the last subName has characters we want to include it
+                newName += subNames[-1] + suffix + "." + str(num).zfill(3)
             else:
                 newName += suffix + "." + str(num).zfill(3)
         else:
             newName += suffix + "." + subNames[-1]
 
         return newName
+
+    def gen_new_names(prefix, names, suffix, extend = 0):
+        newNames = []
+        for name in names:
+            subNames = name.split()
+            newName = prefix
+            for i in range(len(subNames) - 1):
+                newName += subNames[i] + "."
+
+            if(not subNames[-1].isdigit()):
+                newName += subNames[-1] + suffix
+            else:
+                 newName += suffix + "." + subNames[-1]
+
+            newNames.append(newName)
+        
+        #gens extend more names by using the last new name as template
+        if(extend != 0):
+            base = ""
+            last = newNames[-1]
+            subNames = last.split(".")
+            offset = int(subNames[-1]) + 1 if(subNames[-1].isdigit()) else 1
+            for i in range(len(subNames) - 1):
+                base += subNames[i] + "."
+
+            for i in range(extend):
+                newNames.append(base + str(i + offset).zfill(3))
+
+        return newNames
 
     @classmethod
     def get_chain_head(cls, bones):
@@ -188,7 +217,8 @@ class ArmatureTools:
                 if(child in bones):
                     subSet.append(child)
                     bones.remove[child]
-            
+            boneSets.append(subSet)
+
         return boneSets
 
     @classmethod
@@ -206,19 +236,23 @@ class ArmatureTools:
             bones[i].tail = points[i+1]
 
     @classmethod
-    def gen_bones_along_points(cls, editBones, points, names, parents = True, useConnect = True, rolls = 0):
+    def gen_bones_along_points(cls, editBones, points, names, parents = True, useConnect = True, offset = 1, rolls = 0, z_axis = -1):
         bones = []
 
         boneLast = None
-        for i in range(len(points) - 1):
-            newName = names[i]
+        for i in range(0,len(points) - 1, offset):
+            newName = names[int(i/offset)]
             roll = rolls[i] if (type(rolls) == list) else rolls
-
+            
             bones.append(newName)
             bone = editBones.new(newName)
             bone.head = points[i]
             bone.tail = points[i + 1]
             bone.roll = roll
+
+            z = z_axis if type(z_axis) != list else z_axis[i]
+            if(z != -1):
+                bone.z_axis = z
 
             if(i > 0 and parents and boneLast != None):
                 bone.parent = boneLast
@@ -267,8 +301,8 @@ class PointTools:
     def gen_points_from_bones(cls, bones, offset = 1):
         points = []
         points.append(bones[0].head)
-        numPoints = int(len(bones) / offset)
-        for i in range(1,numPoints+1):
+        numPoints = int(len(bones) / offset) + 1
+        for i in range(1,numPoints):
             index = int((i * offset)) - 1
             points.append(bones[index].tail)
 
@@ -297,16 +331,17 @@ class PointTools:
                 direction = directions
             elif(avrageDirections):
                 direction = directions[i].copy()
-                direction += directions[i-1]
+                direction += directions[i-1] * (i > 0)
                 direction = direction.normalized()
             else:
                 direction = directions[i]
+
+            if(includeOriginal):
+                newPoints.append(points[i] * mathutils.Vector((1,1,1)))
+
+            newPoints.append(points[i] + (direction * distance))
         
-        if(includeOriginal):
-            newPoints.append(points[i])
-        newPoints.append(points[i] + (direction * size))
-        
-        return points
+        return newPoints
 
     @classmethod
     def points_translate_space(cls, points, local, other):
@@ -379,8 +414,8 @@ class PointTools:
                     prevDist = LUT[i]
                     nextDist = LUT[i+1]
                     if(prevDist <= distance < nextDist):
-                        prevT = i / (n - 1.0)
-                        nextT = (i + 1.0) / (n - 1.0)
+                        prevT = i / (LUTResolution - 1.0)
+                        nextT = (i + 1.0) / (LUTResolution - 1.0)
                         t = (distance - prevDist) / (nextDist - prevDist)
                         t = ((1.0 - t) * prevT) + (t * nextT)
 

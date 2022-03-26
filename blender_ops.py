@@ -21,7 +21,7 @@ class Toggle_Constraints(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "POSE", numObjs = 1)
+        return Poll.check_poll(activeType = "ARMATURE", activeMode = "POSE", numObjs = 1)
     
     def execute(self, context):
         selected = context.selected_pose_bones
@@ -41,7 +41,7 @@ class Remove_Constraints(bpy.types.Operator):
     
     @classmethod
     def poll(cls, context):
-        return tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "POSE", numObjs = 1)
+        return Poll.check_poll(activeType = "ARMATURE", activeMode = "POSE", numObjs = 1)
 
     def execute(self, context):
         selected = context.selected_pose_bones
@@ -69,7 +69,7 @@ class Add_Many_Constraints(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "POSE", numObjs = 1) and 
+        return (Poll.check_poll(activeType = "ARMATURE", activeMode = "POSE", numObjs = 1) and 
                 len(context.selected_pose_bones) > 2)
 
     def execute(self, context):
@@ -106,7 +106,7 @@ class Add_Twist_Constraints(bpy.types.Operator):
     
     @classmethod
     def poll(cls, context):
-        checkObject = tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "POSE", numObjs = 1)
+        checkObject = Poll.check_poll(activeType = "ARMATURE", activeMode = "POSE", numObjs = 1)
         if(checkObject):
             bones = context.selected_pose_bones
             sets = ArmatureTools.get_contiguous_sets(bones)
@@ -177,14 +177,13 @@ class Gen_Eye_Bones(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        checkObjects = tools.poll.check_poll(types = "ARMATURE,MESH",activeType = "ARMATURE", activeMode = "EDIT", numObjs = 2)
+        checkObjects = Poll.check_poll(types = "ARMATURE,MESH",activeType = "MESH", activeMode = "EDIT", numObjs = 2)
         if(checkObjects):
             count = 0
             for v in bpy.context.active_object.data.vertices:
                 count += v.select
-                if(count > 1):
+                if(count > 2):
                     return True
-
         return False
 
     def execute(self, context):
@@ -299,7 +298,10 @@ class Gen_Constrain_Bones(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return tools.poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT") and len(context.selected_pose_bones) > 0
+        return (Poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT") and 
+                len(context.selected_editable_bones) > 0 and 
+                ArmatureTools.is_contiguous_branchless(context.selected_editable_bones)
+                )
 
     def execute(self, context):
         initMode = self.objArmature.mode
@@ -315,16 +317,28 @@ class Gen_Constrain_Bones(bpy.types.Operator):
 
         selectedNames = ArmatureTools.get_bone_names(selected)
         
+        count = 0
         rolls = []
         newNames = []
+        base = ArmatureTools.trim_bone_name(selectedNames[0])
         for i in range(numNewBones):
             offIndex = offset * i
-            newNames.append(ArmatureTools.trim_bone_name(selectedNames[offIndex]))
+
+            name = ArmatureTools.trim_bone_name(selectedNames[offIndex])
+
+            if(name == base):
+                count += 1
+            else:
+                count = 0
+                base = name
+
+
+            newNames.append(ArmatureTools.gen_bone_name(self.prefix, name, self.suffix, num = count))
             rolls.append(selected[offIndex].roll)
         
         editBones = self.objArmature.data.edit_bones
         
-        newBones = ArmatureTools.gen_bones_along_points(editBones, points, newNames, self.prefix, self.suffix, rolls = rolls)
+        newBones = ArmatureTools.gen_bones_along_points(editBones, points, newNames, rolls = rolls)
 
         if(self.removeParents):
             for bone in selected:
@@ -334,9 +348,8 @@ class Gen_Constrain_Bones(bpy.types.Operator):
         poseBones = self.objArmature.pose.bones
         for i in range(numNewBones):
             offIndex = offset * i
-            boneTarget = newBones[i]
+            boneTarget = newNames[i]
             numRange = ((offset-1) * (self.removeParents)) + 1
-            print(numRange)
             for j in range(numRange):
                 boneConstrained = poseBones[poseBones.find(selectedNames[offIndex + j])]
                 constraint = boneConstrained.constraints.new('COPY_TRANSFORMS')
@@ -379,7 +392,7 @@ class Snap_Bones_to_Curve(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (tools.poll.check_poll(types = "ARMATURE,CURVE", activeType = "ARMATURE", activeMode = "EDIT", numObjs = 2) and 
+        return (Poll.check_poll(types = "ARMATURE,CURVE", activeType = "ARMATURE", activeMode = "EDIT", numObjs = 2) and 
                 len(context.selected_editable_bones) > 0)
 
     def execute(self, context):
@@ -479,13 +492,16 @@ class Gen_Bone_Chain_From_Bones(bpy.types.Operator):
         return tuples
 
     prefix: bpy.props.StringProperty(name="Preffix")
+    suffix: bpy.props.StringProperty(name="Suffix")
     axis: bpy.props.EnumProperty(items=getAxisTuples, name='Axis', description = "Choose Axis")
+    
+    avgDir: bpy.props.BoolProperty(name="AvgDirections?")
 
     @classmethod
     def poll(cls, context):
-            return (tools.poll.check_poll(types = "ARMATURE", activeMode = "EDIT") and 
+            return (Poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT") and 
                     len(context.selected_editable_bones) > 0 and 
-                    ArmatureTools.is_contiguous_branchless(selected))
+                    ArmatureTools.is_contiguous_branchless(context.selected_editable_bones))
 
     def execute(self, context):
         objArmature = context.active_object
@@ -500,30 +516,37 @@ class Gen_Bone_Chain_From_Bones(bpy.types.Operator):
 
         directions = []
         for bone in selected:
+            axis = bone.x_axis
             if(self.axis == "X"):
-                directions.append(bone.x_axis)
+                axis = bone.x_axis 
             elif(self.axis == "-X"):
-                directions.append(bone.x_axis * -1)
+                axis = bone.x_axis * -1 
             elif(self.axis == "Z"):
-                directions.append(bone.z_axis)
+                axis = bone.z_axis 
             elif(self.axis == "-Z"):
-                directions.append(bone.z_axis * -1)
+                axis = bone.z_axis * -1 
             else:
                 return {"CANCELLED"}
 
+            directions.append(axis)
+            if(bone == selected[-1]):
+                directions.append(axis)
+
         points = PointTools.gen_points_from_bones(selected)#gen points from selected
-        selected = ArmatureTools.get_bone_names(selected)#get names of selected
-        ctrlBones = ArmatureTools.gen_bones_tangent_to_points(objArmature.data.edit_bones, points, directions, 1, name, self.prefix, "")#generate new bones off points
+        selectedNames = ArmatureTools.get_bone_names(selected)#get names of selected
+        points = PointTools.gen_points_tangent_to_points(points, directions, 1.0, includeOriginal = True, avrageDirections = self.avgDir)#generate new bones off points
+        ctrlNames = ArmatureTools.gen_new_names(self.prefix, selectedNames, self.suffix, extend = 1)
+        ArmatureTools.gen_bones_along_points(objArmature.data.edit_bones, points, ctrlNames, parents = False, useConnect = False, offset = 2)
 
         bpy.ops.object.mode_set(mode='POSE')
         poseBones = objArmature.pose.bones
-        for i in range(len(selected)):
+        for i in range(len(selectedNames)): 
             #retrieve pose bone
-            bone = poseBones[poseBones.find(selected[i])]
+            bone = poseBones[poseBones.find(selectedNames[i])]
             #Constraint targets
-            ctrlH = ctrlBones[i]
-            ctrlT = ctrlBones[i+1]
-            
+            ctrlH = ctrlNames[i]
+            ctrlT = ctrlNames[i+1]
+
             constraint = bone.constraints.new('COPY_LOCATION')
             constraint.subtarget = ctrlH
             constraint.target = objArmature
@@ -561,10 +584,10 @@ class Gen_Bone_Chain(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "EDIT")
+        Poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT")
 
         
-        return (tools.poll.check_poll(typeActive = "ARMATURE", activeMode = "EDIT") and 
+        return (Poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT") and 
                 len(context.selected_editable_bones) > 0)
 
     def execute(self, context):
@@ -612,7 +635,6 @@ class Gen_Bone_Chain(bpy.types.Operator):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
 
-#bug. Crash on CTRL Z
 class Gen_Bone_Curve(bpy.types.Operator):
     bl_idname = "armature.bone_curve"
     bl_label = "bone curve"
@@ -636,13 +658,13 @@ class Gen_Bone_Curve(bpy.types.Operator):
                 self.objArmature = obj
 
     chainName: bpy.props.StringProperty(name="Name of chain")
-    preffix: bpy.props.StringProperty(name="Preffix")
+    prefix: bpy.props.StringProperty(name="prefix")
     suffix: bpy.props.StringProperty(name="Suffix")
     even: bpy.props.BoolProperty(name="even distribution?")
 
     @classmethod
     def poll(cls, context):
-        return tools.poll.check_poll(types = "ARMATURE,CURVE", typeActive = "ARMATURE", activeMode = "EDIT", numObjs = 2)
+        return Poll.check_poll(types = "ARMATURE,CURVE", activeType = "ARMATURE", activeMode = "EDIT", numObjs = 2)
 
     def execute(self, context):
         if(self.numBones == 0):
@@ -673,7 +695,8 @@ class Gen_Bone_Curve(bpy.types.Operator):
         curvePoints = PointTools.gen_points_from_bPoints(bPoints, resolution, evenDistribution = self.even, forBones = True)
 
         bpy.ops.object.mode_set(mode='EDIT')
-        ArmatureTools.gen_bones_along_points(self.objArmature.data.edit_bones, curvePoints, self.name, self.preffix, self.suffix)
+        names = [ArmatureTools.gen_bone_name(self.prefix, self.name, self.suffix, i) for i in range(len(curvePoints) - 1)]
+        ArmatureTools.gen_bones_along_points(self.objArmature.data.edit_bones, curvePoints, names)
 
         bpy.ops.object.mode_set(mode=initMode)
         return {"FINISHED"}
