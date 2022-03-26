@@ -40,9 +40,9 @@ class BezierPoint:
             self.handle_left = bPoint.handle_left.copy()
             self.co = bPoint.co.copy()
         else:
-            self.handle_right = handle_right
-            self.handle_left = handle_left
-            self.co = co
+            self.handle_right = handle_right.copy()
+            self.handle_left = handle_left.copy()
+            self.co = co.copy()
     
     @classmethod
     def copyList(cls, bPoints):
@@ -51,6 +51,62 @@ class BezierPoint:
             points.append(cls(bPoint = bPoints[i]))
         return points
 
+class Poll:
+
+    @classmethod
+    def selected_types(cls, types):
+        dic = dictionary.fromkeys(types,[])
+        for obj in bpy.context.selectable_objects:
+            if(dic.has_key(obj.type)):
+                dic[t].append(obj)
+        
+        objs = []
+        for t in types:
+            objs.append(dic[t])
+        
+        return objs
+    
+    @classmethod
+    def num_objects(cls):
+        return len(bpy.context.selected_editable_objects)
+
+    @classmethod
+    def is_types_selected(cls, types):
+        if(types == ""):
+            return True
+
+        count = 0
+        types = types.split(',')
+        for t in types:
+            for obj in bpy.context.selected_editable_objects:
+                if(obj.type == t):
+                    count += 1
+                    break
+
+        return len(types) == count
+
+    @classmethod
+    def is_type_active(cls, t):
+        return bpy.context.active_object.type == t or t == ""
+
+    @classmethod
+    def is_active_mode(cls, mode):
+        return bpy.context.active_object.mode == mode or mode == ""
+
+    @classmethod
+    def is_active_none(cls):
+        return bpy.context.active_object == None
+
+    @classmethod
+    def check_poll(cls, types = "", activeType = "", activeMode = "", numObjs = -1):
+        return (
+                not cls.is_active_none() and
+                (cls.num_objects() == numObjs or numObjs == -1) and
+                cls.is_types_selected(types) and 
+                cls.is_type_active(activeType) and 
+                cls.is_active_mode(activeMode)
+                )
+
 class ArmatureTools:
 
     @classmethod
@@ -58,10 +114,50 @@ class ArmatureTools:
         return re.sub(r'.\d','',name)
 
     @classmethod
-    def gen_bone_name(cls, prifix, name, suffix, num):
-        return prifix + name + suffix + "." + str(num).zfill(3)
-        #return prifix + name + suffix + zFill 000
-        #update blenderOps code to use this function
+    def gen_bone_name(cls, prefix, name, suffix, num = 0):
+        subNames = name.split()
+        newName = prefix
+        for i in range(len(subNames) - 1):
+            newName += subNames[i] + "."
+
+        if(num > 0):#if we have a number to add to the end
+            if(re.search('[a-zA-Z]', subNames[-1])):#if the last subName has characters we want to include it
+                newName += subNames[-1] + suffix + "." + str(num).zfill(3)
+            else:
+                newName += suffix + "." + str(num).zfill(3)
+        else:
+            newName += suffix + "." + subNames[-1]
+
+        return newName
+
+    def gen_new_names(prefix, names, suffix, extend = 0):
+        newNames = []
+        for name in names:
+            subNames = name.split()
+            newName = prefix
+            for i in range(len(subNames) - 1):
+                newName += subNames[i] + "."
+
+            if(not subNames[-1].isdigit()):
+                newName += subNames[-1] + suffix
+            else:
+                 newName += suffix + "." + subNames[-1]
+
+            newNames.append(newName)
+        
+        #gens extend more names by using the last new name as template
+        if(extend != 0):
+            base = ""
+            last = newNames[-1]
+            subNames = last.split(".")
+            offset = int(subNames[-1]) + 1 if(subNames[-1].isdigit()) else 1
+            for i in range(len(subNames) - 1):
+                base += subNames[i] + "."
+
+            for i in range(extend):
+                newNames.append(base + str(i + offset).zfill(3))
+
+        return newNames
 
     @classmethod
     def get_chain_head(cls, bones):
@@ -70,20 +166,21 @@ class ArmatureTools:
         while(parent in bones):
             head = parent
             parent = head.parent
-                
+        
         return head
 
     @classmethod
     def get_sorted(cls, bones):
-        if(cls.is_contiguous_branchless(bones)):
-            top = cls.get_chain_head(bones)
-            children = top.children_recursive[:len(bones)-1]
-            sortedBones = [top]
-            sortedBones.extend(children)
-            return sortedBones
-        else:
+        if(not cls.is_contiguous_branchless(bones)):
+            raise "Error in " + __name__ + " : bone chain is not contiguous and branchless!"
             return bones
-    
+
+        top = cls.get_chain_head(bones)
+        children = top.children_recursive[:len(bones)-1]
+        sortedBones = [top]
+        sortedBones.extend(children)
+        return sortedBones
+  
     @classmethod
     def get_bone_names(cls, bones):
         names = []
@@ -103,33 +200,25 @@ class ArmatureTools:
             tail = child[0]
             child = tail.children
 
-        return count == len(bones) and len(child) <= 1
+        return count == len(bones)
 
     @classmethod
-    def get_contiguous_sets(cls, bones, sameSize = False, stopBranch = True):
+    def get_contiguous_sets(cls, bones):
         boneSets = []
-        size = None
         bones = bones.copy()
         while(len(bones) > 0):
-            #ToDo: remove set from bones and find next set
             bone = cls.get_chain_head(bones)
-            set = [bone]
-            child = bone.children
+            children = bone.children_recursive
+            subSet = [bone]
+
             bones.remove(bone)
-            while(len(child) == 1 and child[0] in bones):
-                bone = child[0]
-                bones.remove(bone)
-                set.append(bone)
-                child = bone.children
-            if(size == None):#gets size of first set
-                size = len(set)
-            
-            if(sameSize and (len(set) != size)) or ((stopBranch and child in bones and len(child) > 1)):
-                print((stopBranch and len(child) > 1))
-                return []
-            
-            boneSets.append(set)
-                
+            for i in range(len(children)):
+                child = children[i]
+                if(child in bones):
+                    subSet.append(child)
+                    bones.remove[child]
+            boneSets.append(subSet)
+
         return boneSets
 
     @classmethod
@@ -147,61 +236,29 @@ class ArmatureTools:
             bones[i].tail = points[i+1]
 
     @classmethod
-    def gen_bones_tangent_to_points(cls, editBones, points, direction, size, name, prefix, suffix):
-        isList = type(direction) == list
-        startDir = direction.copy()
-        length = len(points)
+    def gen_bones_along_points(cls, editBones, points, names, parents = True, useConnect = True, offset = 1, rolls = 0, z_axis = -1):
         bones = []
 
-        if(isList):
-            direction = startDir[0]
-        length = len(points)
-        for i in range(length):
-            newName = prefix + name + suffix + "." + str(i).zfill(3)
-            bones.append(newName)
-
-            if(isList and i != 0):
-                if(i < length - 1):
-                    direction = startDir[i].copy()
-                    direction += startDir[i-1]
-                    direction = direction.normalized()
-                else:
-                    direction = startDir[len(startDir)-1]
-   
-
-            bone = editBones.new(newName)
-            bone.head = points[i]
-            bone.tail = bone.head + (direction * size)
-
-        if(isList):
-            direction = startDir[0]
-
-        return bones
-
-    @classmethod
-    def gen_bones_along_points(cls, editBones, points, names, prefix, suffix, parents = True, useConnect = True, rolls = 0):
-        bones = []
-
-        name = ""
         boneLast = None
-        for i in range(len(points) - 1):
-            newName = prefix + names[i] + suffix if (type(names) == list) else prefix + names + suffix 
+        for i in range(0,len(points) - 1, offset):
+            newName = names[int(i/offset)]
             roll = rolls[i] if (type(rolls) == list) else rolls
-
-            newName = newName if (type(names) == list) else newName + "." + str(i).zfill(3)
+            
             bones.append(newName)
             bone = editBones.new(newName)
             bone.head = points[i]
             bone.tail = points[i + 1]
             bone.roll = roll
 
+            z = z_axis if type(z_axis) != list else z_axis[i]
+            if(z != -1):
+                bone.z_axis = z
+
             if(i > 0 and parents and boneLast != None):
                 bone.parent = boneLast
                 bone.use_connect = useConnect
 
             boneLast = bone
-
-        return bones
 
 class PointTools:
     
@@ -217,7 +274,6 @@ class PointTools:
     @classmethod
     def __distance_to_T(cls, LUT, distance):
         n = len(LUT)
-        Length = LUT[n - 1]
         
         for i in range(n-1):
             prevDist = LUT[i]
@@ -242,20 +298,11 @@ class PointTools:
         return numLUTS-1
 
     @classmethod
-    def __distance_of_LUTS(cls, LUTS):
-        distance = 0
-        numBezSegments = len(LUTS)
-        LUTResolution = len(LUTS[0])
-        for i in range(numBezSegments):
-            distance += LUTS[i][LUTResolution-1]
-        return distance
-
-    @classmethod
     def gen_points_from_bones(cls, bones, offset = 1):
         points = []
         points.append(bones[0].head)
-        numPoints = int(len(bones) / offset)
-        for i in range(1,numPoints+1):
+        numPoints = int(len(bones) / offset) + 1
+        for i in range(1,numPoints):
             index = int((i * offset)) - 1
             points.append(bones[index].tail)
 
@@ -270,6 +317,32 @@ class PointTools:
 
         return points
     
+    @classmethod
+    def gen_points_tangent_to_points(cls, points, directions, distance, includeOriginal = False, avrageDirections = False):
+        newPoints = []
+        numPoints = len(points)
+        dirSingle = type(directions) != list
+        if(dirSingle and len(points) > directions):
+            raise "Error in " + __name__ + " : number of direction vectors is less than number of points!"
+            return points
+        
+        for i in range(numPoints):
+            if(dirSingle):
+                direction = directions
+            elif(avrageDirections):
+                direction = directions[i].copy()
+                direction += directions[i-1] * (i > 0)
+                direction = direction.normalized()
+            else:
+                direction = directions[i]
+
+            if(includeOriginal):
+                newPoints.append(points[i] * mathutils.Vector((1,1,1)))
+
+            newPoints.append(points[i] + (direction * distance))
+        
+        return newPoints
+
     @classmethod
     def points_translate_space(cls, points, local, other):
         mat = SimpleMaths.get_space_transform_mat(local, other)
@@ -292,22 +365,21 @@ class PointTools:
         numBezSegments = len(bPoints) - 1
         if(evenDistribution):        
             LUTResolution = resolution
-
             LUTS = []
+
+            curveLength = 0
             points = cls.gen_points_from_bPoints(bPoints, LUTResolution)
             #calculating cumulative distance from point to point along each curve segment
             for i in range(numBezSegments):
                 LUT = [0.0]              #cumulative distnace values get put here
-                for j in range(LUTResolution-1):
+                for j in range(LUTResolution):
                     index = (i * (LUTResolution)) + j
                     distance = math.dist(points[index],points[index + 1]) + LUT[j]
                     LUT.append(distance)
                 LUTS.append(LUT)
-            
-            #values for next part of curve gen
+                curveLength += LUT[-1]
             points = []
-            curveLength = cls.__distance_of_LUTS(LUTS)
-
+            
             delta = curveLength / (resolution * numBezSegments)
             resolution = (resolution * numBezSegments) + numBezSegments
 
@@ -325,8 +397,6 @@ class PointTools:
                 distance = i * delta
 
                 newLUTIndex = cls.__distance_to_Lut_Index(LUTS, distance)#get the relevant distnace table index
-                print(delta)
-                print(newLUTIndex)
                 if(newLUTIndex != LUTIndex):#if we pass into a new distance table we need to update cumulative distance
                     LUTdistance += LUTS[LUTIndex][LUTResolution-1]
                     LUTIndex = newLUTIndex
@@ -338,7 +408,18 @@ class PointTools:
 
                 distance -= LUTdistance
 
-                points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, cls.__distance_to_T(LUTS[LUTIndex], distance)))
+                t = 1.0
+                #search through LUT and find t value
+                for i in range(LUTResolution-1):
+                    prevDist = LUT[i]
+                    nextDist = LUT[i+1]
+                    if(prevDist <= distance < nextDist):
+                        prevT = i / (LUTResolution - 1.0)
+                        nextT = (i + 1.0) / (LUTResolution - 1.0)
+                        t = (distance - prevDist) / (nextDist - prevDist)
+                        t = ((1.0 - t) * prevT) + (t * nextT)
+
+                points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, t))
 
         else:
             
@@ -370,11 +451,10 @@ class PointTools:
             points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, 1.0))
 
         return points
-    
+
     @classmethod
     def get_length_points(cls, points):
         distance = 0.0
         for i in range(len(points) - 1):
             distance += math.dist(points[i], points[i+1])
         return distance
-
