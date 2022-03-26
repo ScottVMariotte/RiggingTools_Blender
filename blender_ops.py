@@ -6,12 +6,6 @@ import re
 
 from . tools import *
 
-
-
-#TODO: Operators : Constraint Programming, parent bones by distance
-#Bugs: Fix/remove snap bones to curve even
-#CLEAN : ... more intuitive and cohesive naming,  cohesive poll methods
-
 class Toggle_Constraints(bpy.types.Operator):
     bl_idname = "armature.toggle_constraints"
     bl_label = "toggle constraints"
@@ -586,7 +580,6 @@ class Gen_Bone_Chain(bpy.types.Operator):
     def poll(cls, context):
         Poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT")
 
-        
         return (Poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT") and 
                 len(context.selected_editable_bones) > 0)
 
@@ -606,18 +599,25 @@ class Gen_Bone_Chain(bpy.types.Operator):
         distance = distance[2]
         z_axis = boneSource.z_axis
 
+        name = ArmatureTools.trim_bone_name(context.selected_editable_bones[0].name)
         edit_bones.remove(boneSource)
 
+        names = []
+        for i in range(self.numBones):
+            names.append(ArmatureTools.gen_bone_name(self.prefix, name, self.suffix, num = i))
+        ctrlNames = ArmatureTools.gen_new_names("CTRL_", names, self.suffix, extend = 1)
+        
         points = PointTools.gen_points_along_vector(location, direction, distance, self.numBones + 1)
-        defBones = ArmatureTools.gen_bones_along_points(edit_bones, points, self.chainName, self.prefix, self.suffix, parents = self.parents, useConnect = self.useConnect)
-        ctrlBones = ArmatureTools.gen_bones_tangent_to_points(edit_bones, points, z_axis, distance/self.numBones, self.chainName, "CTRL_" + self.prefix, self.suffix)
+        ArmatureTools.gen_bones_along_points(edit_bones, points, names, parents = False, useConnect = False)
+        points = PointTools.gen_points_tangent_to_points(points, z_axis, 1.0, includeOriginal = True)#generate new bones off points <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Get AVG length of points
+        ArmatureTools.gen_bones_along_points(edit_bones, points, ctrlNames, parents = False, useConnect = False, offset = 2)
 
         bpy.ops.object.mode_set(mode='POSE')
         poseBones = self.objArmature.pose.bones
-        for i in range(len(defBones)):
-            defBone = poseBones[poseBones.find(defBones[i])]
-            ctrlH = ctrlBones[i]
-            ctrlT = ctrlBones[i+1]
+        for i in range(len(names)):
+            defBone = poseBones[poseBones.find(names[i])]
+            ctrlH = ctrlNames[i]
+            ctrlT = ctrlNames[i+1]
 
             constraint = defBone.constraints.new('COPY_LOCATION')
             constraint.subtarget = ctrlH

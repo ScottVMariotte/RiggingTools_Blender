@@ -451,7 +451,7 @@ class PointTools:
             points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, 1.0))
 
         return points
-    
+
     @classmethod
     def get_length_points(cls, points):
         distance = 0.0
