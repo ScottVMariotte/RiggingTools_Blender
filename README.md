@@ -24,9 +24,7 @@ Looking into writing a testing script for existing operations so I can quickly i
 
 
 
---(Plan on getting a video up at some points I know the pictures kinda suck...)--
-
-# Bone Curve 
+# Bone Curve --(Plan on getting a video up at some points I know the pictures kinda suck...)--
 ![2022-03-24 18_06_44-Blender](https://user-images.githubusercontent.com/102049585/160018603-8811c026-623a-4441-8407-378873b69c29.png)
 # Constrain Bones
 ![2022-03-24 18_08_01-Blender](https://user-images.githubusercontent.com/102049585/160018622-53cc836a-bbe2-407c-ae88-c6871f1d7a9a.png)
