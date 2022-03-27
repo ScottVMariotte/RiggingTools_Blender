@@ -2,9 +2,9 @@
 BasicRigTools is just a collection of rigging operations that are ment to improve the rigging experience in blender. 
 
 ## Current Status
-Mostly functional.
-Focusing on cleaning up the existing code and tools to make them more intuitive to work with. 
-After that I will look into adding more operations.
+Functional - all operations should work as intended with minimal issues.
+Looking into writing a testing script for existing operations so I can quickly identify if any new changes have caused issues.
+
 # Operations
 
  - **Bone Curve -**
