@@ -55,14 +55,11 @@ class Poll:
 
     @classmethod
     def selected_types(cls, types):
-        dic = dictionary.fromkeys(types,[])
-        for obj in bpy.context.selectable_objects:
-            if(dic.has_key(obj.type)):
-                dic[t].append(obj)
-        
-        objs = []
         for t in types:
-            objs.append(dic[t])
+            for obj in bpy.context.selectable_objects:
+                if(obj.type == t):
+                    objs.append(obj)
+                    break
         
         return objs
     
@@ -130,7 +127,8 @@ class ArmatureTools:
 
         return newName
 
-    def gen_new_names(prefix, names, suffix, extend = 0):
+    @classmethod
+    def gen_new_names(cls, prefix, names, suffix, extend = 0):
         newNames = []
         for name in names:
             subNames = name.split()

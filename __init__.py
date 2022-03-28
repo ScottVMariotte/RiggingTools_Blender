@@ -16,7 +16,7 @@ if "bpy" not in locals():
     from . import tools
 else:
     import importlib
-
+    
     importlib.reload(blender_ops)
     importlib.reload(tools)
 
@@ -31,7 +31,8 @@ classes = { blender_ops.Gen_Bone_Curve,
             blender_ops.Remove_Constraints,
             blender_ops.Add_Many_Constraints,
             blender_ops.Toggle_Constraints,
-            blender_ops.Gen_Bone_Chain_From_Bones
+            blender_ops.Gen_Bone_Chain_From_Bones,
+            blender_ops.Gen_Bone_Copies
             }
 
 def register():
