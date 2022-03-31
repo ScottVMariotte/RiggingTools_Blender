@@ -71,7 +71,7 @@ class Poll:
     def is_types_selected(cls, types):
         if(types == ""):
             return True
-
+        
         count = 0
         types = types.split(',')
         for t in types:
@@ -103,6 +103,56 @@ class Poll:
                 cls.is_type_active(activeType) and 
                 cls.is_active_mode(activeMode)
                 )
+
+class Naming:
+
+    @classmethod
+    def compare_names(cls, name1, name2, trim1 = False, trim2 = False):
+        if(trim1):
+            name1 = Naming.split(name1)
+            name1 = name1[0] + name1[2]
+        if(trim2):
+            name2 = Naming.split(name2)
+            name2 = name2[0] + name2[2]
+        return name1 == name2
+
+    @classmethod
+    def split(cls, name):
+        split = name.split(".")
+
+        nums = ""
+        name = ""
+        mirror = ""
+        for s in split:
+            if(s == "L" or s == "R"):
+                mirror = "." + s
+                continue
+            if(re.search('[a-zA-Z]', s)):
+                name += s + "."
+                continue
+            if(nums == ""):
+                nums = s
+
+        return (name[0:-1], nums, mirror)
+
+    @classmethod
+    def gen_new(cls, name, count = -1, prefix = "", suffix = "", mirror = ""):
+        if mirror != "":
+            mirror = "." + mirror
+        if count != -1:
+            count = "." + str(count).zfill(3)
+        else:
+            count = ""
+        
+        return prefix + name + suffix + count + mirror
+    
+    @classmethod
+    def rename(cls, name):
+        name = cls.split(name)
+        if name[1] != "":
+            return name[0] + "." + str(int(name[1])).zfill(3) + name[2]
+        
+        return name[0] + name[1] + name[2]
 
 class ArmatureTools:
 
