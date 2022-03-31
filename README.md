@@ -2,11 +2,13 @@
 BasicRigTools is just a collection of rigging operations that are ment to improve the rigging experience in blender. 
 
 ## Current Status
-Functional - all operations should work as intended with minimal issues.\
-Looking into writing a testing script for existing operations so I can quickly identify if any new changes have caused issues.
+Functional - all operations should work as intended with minimal issues.
 
 # Operations
 
+ - **Subdivide Bones -**
+	 - requirements - active(ARMATURE), mode(EDIT)
+	 - I dont like how blender renames bones when subdividing. This operation will subdivide selected bones and rename them in ascending order from the highest selected bone in the chain. It will also update numbers on any bones down the chain that are not selected. 
  - **Gen Bone Copies -**
 	 - requirements - active(ARMATURE), mode(EDIT)
 	 - Will duplicate selected bones and add the given prefix. You can make many copies by adding a ',' between each prefix. example = "CTRL_,MECH_").
@@ -33,20 +35,3 @@ Looking into writing a testing script for existing operations so I can quickly i
  	 - requirements - selected(ARMATURE), active(ARMATURE), mode(POSE)
 	 -  Toggle allows you to check whether you want the constraints on selected bones to be on or off. Remove just removes all constraints on selected objects.
 
-
-
-# Bone Curve 
---(Plan on getting a video up at some points I know the pictures kinda suck...)--
-![2022-03-24 18_06_44-Blender](https://user-images.githubusercontent.com/102049585/160018603-8811c026-623a-4441-8407-378873b69c29.png)
-# Constrain Bones
-![2022-03-24 18_08_01-Blender](https://user-images.githubusercontent.com/102049585/160018622-53cc836a-bbe2-407c-ae88-c6871f1d7a9a.png)
-
-![2022-03-24 18_08_26-Blender](https://user-images.githubusercontent.com/102049585/160018627-44891af4-8b74-4f29-8932-f86e239803c0.png)
-# Twist Bones
-![2022-03-24 18_09_15-Blender](https://user-images.githubusercontent.com/102049585/160018628-c4bea9e2-39c5-4055-9e77-16ec67d0f469.png)
-
-![2022-03-24 18_09_43-Blender](https://user-images.githubusercontent.com/102049585/160018631-80703e6e-ce99-4521-9c75-4bf00feccf57.png)
-
-![2022-03-24 18_10_00-Blender](https://user-images.githubusercontent.com/102049585/160018636-7896bac2-f5ec-46bb-9bb5-61bc9567cf12.png)
-
-![2022-03-24 18_10_19-Blender](https://user-images.githubusercontent.com/102049585/160018637-1db5f158-4856-463a-a7f7-e5a8da9b2fa8.png)
