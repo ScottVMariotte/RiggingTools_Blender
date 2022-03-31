@@ -7,6 +7,10 @@ Looking into writing a testing script for existing operations so I can quickly i
 
 # Operations
 
+ - **Gen Bone Copies -**
+	 - requirements - active(ARMATURE), mode(EDIT)
+	 - Will duplicate selected bones and add the given prefix. You can make many copies by adding a ',' between each prefix. example = "CTRL_,MECH_").
+	 - You can also replace existing string in the name with the new prefix if needed.
  - **Bone Curve -**
 	 - requirements - selected(ARMATURE,CURVE), active(ARMATURE), mode(EDIT)
 	 - Takes selected curve and turns it into a bone chain. Default distrobution of points is same as 	blender but you can have the bones evenly placed by checking the box.
