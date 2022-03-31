@@ -214,7 +214,7 @@ class ArmatureTools:
                 child = children[i]
                 if(child in bones):
                     subSet.append(child)
-                    bones.remove[child]
+                    bones.remove(child)
             boneSets.append(subSet)
 
         return boneSets
