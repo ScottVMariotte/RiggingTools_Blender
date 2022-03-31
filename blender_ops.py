@@ -100,12 +100,7 @@ class Add_Twist_Constraints(bpy.types.Operator):
     
     @classmethod
     def poll(cls, context):
-        checkObject = Poll.check_poll(activeType = "ARMATURE", activeMode = "POSE", numObjs = 1)
-        if(checkObject):
-            bones = context.selected_pose_bones
-            sets = ArmatureTools.get_contiguous_sets(bones)
-            return len(sets) == len(bones) or len(sets) == 2
-        return False 
+        return Poll.check_poll(activeType = "ARMATURE", activeMode = "POSE")
 
     def execute(self, context):
         initMode = context.active_object.mode
