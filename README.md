@@ -8,7 +8,7 @@ Functional - all operations should work as intended with minimal issues.
 
  - **Subdivide Bones -**
 	 - requirements - active(ARMATURE), mode(EDIT)
-	 - I dont like how blender renames bones when subdividing. This operation will subdivide selected bones and rename them in ascending order from the highest selected bone in the chain. It will also update numbers on any bones down the chain that are not selected. 
+	 - I dont like how blender numbering bones when subdividing. This operation will subdivide selected bones and number them in ascending order from the highest selected bone in the chain. It will also update numbers on any bones down the chain that are not selected. It uses the three-digit (.000) as a base and will rewrite your numbering convention if you use (.00) or (.0). May make it respect numbering conventions later.
  - **Gen Bone Copies -**
 	 - requirements - active(ARMATURE), mode(EDIT)
 	 - Will duplicate selected bones and add the given prefix. You can make many copies by adding a ',' between each prefix. example = "CTRL_,MECH_").
