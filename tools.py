@@ -99,12 +99,17 @@ class Poll:
         return (
                 not cls.is_active_none() and
                 (cls.num_objects() == numObjs or numObjs == -1) and
-                cls.is_types_selected(types) and 
-                cls.is_type_active(activeType) and 
+                cls.is_types_selected(types) and
+                cls.is_type_active(activeType) and
                 cls.is_active_mode(activeMode)
                 )
 
 class Naming:
+
+    @classmethod
+    def trim_name(cls, name):
+        splitName = cls.split(name)
+        return splitName[0] + splitName[2]
 
     @classmethod
     def compare_names(cls, name1, name2, trim1 = False, trim2 = False):
@@ -119,6 +124,9 @@ class Naming:
     @classmethod
     def split(cls, name):
         split = name.split(".")
+
+        if(len(split) == 1):
+            return (name, "", "")
 
         nums = ""
         name = ""
@@ -157,57 +165,6 @@ class Naming:
 class ArmatureTools:
 
     @classmethod
-    def trim_bone_name(cls, name):
-        return re.sub(r'.\d','',name)
-
-    @classmethod
-    def gen_bone_name(cls, prefix, name, suffix, num = 0):
-        subNames = name.split()
-        newName = prefix
-        for i in range(len(subNames) - 1):
-            newName += subNames[i] + "."
-
-        if(num > 0):#if we have a number to add to the end
-            if(re.search('[a-zA-Z]', subNames[-1])):#if the last subName has characters we want to include it
-                newName += subNames[-1] + suffix + "." + str(num).zfill(3)
-            else:
-                newName += suffix + "." + str(num).zfill(3)
-        else:
-            newName += suffix + "." + subNames[-1]
-
-        return newName
-
-    @classmethod
-    def gen_new_names(cls, prefix, names, suffix, extend = 0):
-        newNames = []
-        for name in names:
-            subNames = name.split()
-            newName = prefix
-            for i in range(len(subNames) - 1):
-                newName += subNames[i] + "."
-
-            if(not subNames[-1].isdigit()):
-                newName += subNames[-1] + suffix
-            else:
-                 newName += suffix + "." + subNames[-1]
-
-            newNames.append(newName)
-
-        #gens extend more names by using the last new name as template
-        if(extend != 0):
-            base = ""
-            last = newNames[-1]
-            subNames = last.split(".")
-            offset = int(subNames[-1]) + 1 if(subNames[-1].isdigit()) else 1
-            for i in range(len(subNames) - 1):
-                base += subNames[i] + "."
-
-            for i in range(extend):
-                newNames.append(base + str(i + offset).zfill(3))
-
-        return newNames
-
-    @classmethod
     def get_chain_head(cls, bones):
         head = bones[0]
         parent = head.parent
@@ -228,13 +185,6 @@ class ArmatureTools:
         sortedBones = [top]
         sortedBones.extend(children)
         return sortedBones
-
-    @classmethod
-    def get_bone_names(cls, bones):
-        names = []
-        for bone in bones:
-            names.append(bone.name)
-        return names
 
     @classmethod
     def is_contiguous_branchless(cls, bones):

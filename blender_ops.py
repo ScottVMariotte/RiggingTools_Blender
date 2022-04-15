@@ -176,17 +176,17 @@ class Gen_Bone_Copies(bpy.types.Operator):
         for prfx in prefixs:
             newNames = []
             if self.replace == "":
-                newNames = ArmatureTools.gen_new_names(prfx, names, "")
+                newNames = [Naming.gen_new(name, prefix = prfx) for name in names]
             else:
                 for name in names:
                     newNames.append(name.replace(self.replace,prfx))
-                
+
             newBones = []
             for i in range(len(newNames)):
                 refBone = bones[i]
 
                 newBone = eidit_bones.new(newNames[i])
-                
+
                 newBone.head = refBone.head
                 newBone.tail = refBone.tail
                 newBone.roll = refBone.roll
@@ -360,18 +360,15 @@ class Gen_Constrain_Bones(bpy.types.Operator):
         points = PointTools.gen_points_from_bones(selected, offset = offset)
 
         selectedNames = ArmatureTools.get_bone_names(selected)
-        
-        count = 0
+
+        count = -1
         rolls = []
         newNames = []
-        
-        rolls.append(selected[0].roll)
-        base = ArmatureTools.trim_bone_name(selectedNames[0])
-        newNames.append(ArmatureTools.gen_bone_name(self.prefix, base, self.suffix))
-        for i in range(1, numNewBones):
+        base = Naming.trim_name(selectedNames[0])
+        for i in range(0, numNewBones):
             offIndex = offset * i
 
-            name = ArmatureTools.trim_bone_name(selectedNames[offIndex])
+            name = Naming.trim_name(selectedNames[offIndex])
 
             if(name == base):
                 count += 1
@@ -379,11 +376,11 @@ class Gen_Constrain_Bones(bpy.types.Operator):
                 count = 0
                 base = name
 
-            newNames.append(ArmatureTools.gen_bone_name(self.prefix, name, self.suffix, num = count))
+            newNames.append(Naming.gen_new(name, prefix = self.prefix, suffix = self.suffix, count = count))
             rolls.append(selected[offIndex].roll)
-        
+
         editBones = objArmature.data.edit_bones
-        
+
         newBones = ArmatureTools.gen_bones_along_points(editBones, points, newNames, rolls = rolls)
 
         if(self.removeParents):
@@ -570,14 +567,16 @@ class Gen_Bone_Chain_From_Bones(bpy.types.Operator):
                 directions.append(axis)
 
         points = PointTools.gen_points_from_bones(selected)#gen points from selected
-        selectedNames = ArmatureTools.get_bone_names(selected)#get names of selected
         points = PointTools.gen_points_tangent_to_points(points, directions, 1.0, includeOriginal = True, avrageDirections = self.avgDir)#generate new bones off points
-        ctrlNames = ArmatureTools.gen_new_names(self.prefix, selectedNames, self.suffix, extend = 1)
+
+        selectedNames = [bone.name for bone in selected]
+        baseName = Naming.trim_name(selectedNames[0])
+        ctrlNames = [Naming.gen_new(baseName, prefix = self.prefix, suffix = self.suffix, count = i) for i in range(len(selectedNames) + 1)]
         ArmatureTools.gen_bones_along_points(objArmature.data.edit_bones, points, ctrlNames, parents = False, useConnect = False, offset = 2)
 
         bpy.ops.object.mode_set(mode='POSE')
         poseBones = objArmature.pose.bones
-        for i in range(len(selectedNames)): 
+        for i in range(len(selectedNames)):
             #retrieve pose bone
             bone = poseBones[poseBones.find(selectedNames[i])]
             #Constraint targets
@@ -638,16 +637,13 @@ class Gen_Bone_Curve(bpy.types.Operator):
         curveSegments = len(bPoints) - 1
 
         #transformation information from both both objects
-        #for i in range(len(bPoints)):#translate bPoints into armature space
         PointTools.bPoints_translate_space(bPoints,objCurve, objArmature)
 
-        curvePoints = PointTools.gen_points_from_bPoints(bPoints, resolution, evenDistribution = self.even, forBones = True)
+        curvePoints = PointTools.gen_points_from_bPoints(bPoints, resolution, evenDistribution = self.even)
 
-        bpy.ops.object.mode_set(mode='EDIT')
-        names = [ArmatureTools.gen_bone_name(self.prefix, self.name, self.suffix, i) for i in range(len(curvePoints) - 1)]
+        names = [Naming.gen_new(self.name, prefix = self.prefix, suffix = self.suffix, count = i) for i in range(len(curvePoints)-1)]
         ArmatureTools.gen_bones_along_points(objArmature.data.edit_bones, curvePoints, names)
 
-        bpy.ops.object.mode_set(mode=initMode)
         return {"FINISHED"}
 
     def invoke(self, context, event):
