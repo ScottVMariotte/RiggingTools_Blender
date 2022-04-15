@@ -6,7 +6,7 @@ import re
 #TODO Finish gen Bone name / Parse bone name
 
 class SimpleMaths:
-    
+
     @classmethod
     def find_factors(cls,num):
         nums = []
@@ -31,7 +31,7 @@ class SimpleMaths:
                 mathutils.Matrix.Translation(localLoc) @
                 LocalRot
                 )
-        
+
 class BezierPoint:
     def __init__(self, handle_right = None, handle_left = None, co = None, bPoint = None):
         pass
@@ -43,7 +43,7 @@ class BezierPoint:
             self.handle_right = handle_right.copy()
             self.handle_left = handle_left.copy()
             self.co = co.copy()
-    
+
     @classmethod
     def copyList(cls, bPoints):
         points = []
@@ -60,9 +60,9 @@ class Poll:
                 if(obj.type == t):
                     objs.append(obj)
                     break
-        
+
         return objs
-    
+
     @classmethod
     def num_objects(cls):
         return len(bpy.context.selected_editable_objects)
@@ -71,7 +71,7 @@ class Poll:
     def is_types_selected(cls, types):
         if(types == ""):
             return True
-        
+
         count = 0
         types = types.split(',')
         for t in types:
@@ -143,15 +143,15 @@ class Naming:
             count = "." + str(count).zfill(3)
         else:
             count = ""
-        
+
         return prefix + name + suffix + count + mirror
-    
+
     @classmethod
     def rename(cls, name):
         name = cls.split(name)
         if name[1] != "":
             return name[0] + "." + str(int(name[1])).zfill(3) + name[2]
-        
+
         return name[0] + name[1] + name[2]
 
 class ArmatureTools:
@@ -192,7 +192,7 @@ class ArmatureTools:
                  newName += suffix + "." + subNames[-1]
 
             newNames.append(newName)
-        
+
         #gens extend more names by using the last new name as template
         if(extend != 0):
             base = ""
@@ -214,7 +214,7 @@ class ArmatureTools:
         while(parent in bones):
             head = parent
             parent = head.parent
-        
+
         return head
 
     @classmethod
@@ -228,7 +228,7 @@ class ArmatureTools:
         sortedBones = [top]
         sortedBones.extend(children)
         return sortedBones
-  
+
     @classmethod
     def get_bone_names(cls, bones):
         names = []
@@ -239,7 +239,7 @@ class ArmatureTools:
     @classmethod
     def is_contiguous_branchless(cls, bones):
         head = cls.get_chain_head(bones)
-        
+
         count = 1
         tail = head
         child = tail.children
@@ -364,7 +364,7 @@ class PointTools:
             points.append((i * delta * dir) + loc)
 
         return points
-    
+
     @classmethod
     def gen_points_tangent_to_points(cls, points, directions, distance, includeOriginal = False, avrageDirections = False):
         newPoints = []
@@ -373,7 +373,7 @@ class PointTools:
         if(dirSingle and len(points) > directions):
             raise "Error in " + __name__ + " : number of direction vectors is less than number of points!"
             return points
-        
+
         for i in range(numPoints):
             if(dirSingle):
                 direction = directions
@@ -388,7 +388,7 @@ class PointTools:
                 newPoints.append(points[i] * mathutils.Vector((1,1,1)))
 
             newPoints.append(points[i] + (direction * distance))
-        
+
         return newPoints
 
     @classmethod
@@ -427,16 +427,16 @@ class PointTools:
                 LUTS.append(LUT)
                 curveLength += LUT[-1]
             points = []
-            
+
             delta = curveLength / (resolution * numBezSegments)
             resolution = (resolution * numBezSegments) + numBezSegments
 
-            #bezier handle info 
+            #bezier handle info
             knot1 = bPoints[0].co
             handle1 = bPoints[0].handle_right
             knot2 = bPoints[1].co
             handle2 = bPoints[1].handle_left
-            
+
             LUTIndex = 0    #current distance table index
             LUTdistance = 0 #stores the cumulative distance of the LUT tables as we go
 
@@ -448,7 +448,7 @@ class PointTools:
                 if(newLUTIndex != LUTIndex):#if we pass into a new distance table we need to update cumulative distance
                     LUTdistance += LUTS[LUTIndex][LUTResolution-1]
                     LUTIndex = newLUTIndex
-                
+
                     knot1 = bPoints[LUTIndex].co
                     handle1 = bPoints[LUTIndex].handle_right
                     knot2 = bPoints[LUTIndex+1].co
@@ -470,7 +470,7 @@ class PointTools:
                 points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, t))
 
         else:
-            
+
             b1 = bPoints[0]
             b2 = bPoints[1]
 
