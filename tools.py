@@ -154,6 +154,7 @@ class Naming:
 
         return prefix + name + suffix + count + mirror
 
+    #TODO: make this do somthing
     @classmethod
     def rename(cls, name):
         name = cls.split(name)
@@ -234,23 +235,19 @@ class ArmatureTools:
             bones[i].tail = points[i+1]
 
     @classmethod
-    def gen_bones_along_points(cls, editBones, points, names, parents = True, useConnect = True, offset = 1, rolls = 0, z_axis = -1):
+    def gen_bones_along_points(cls, editBones, points, names, parents = True, useConnect = True, offset = 1, rolls = 0):
         bones = []
 
         boneLast = None
         for i in range(0,len(points) - 1, offset):
             newName = names[int(i/offset)]
             roll = rolls[i] if (type(rolls) == list) else rolls
-            
+
             bones.append(newName)
             bone = editBones.new(newName)
             bone.head = points[i]
             bone.tail = points[i + 1]
             bone.roll = roll
-
-            z = z_axis if type(z_axis) != list else z_axis[i]
-            if(z != -1):
-                bone.z_axis = z
 
             if(i > 0 and parents and boneLast != None):
                 bone.parent = boneLast
@@ -356,12 +353,12 @@ class PointTools:
             bp.handle_right = mat @ bp.handle_right
             bp.handle_left = mat @ bp.handle_left
             bp.co = mat @ bp.co
-    
+
     @classmethod
-    def gen_points_from_bPoints(cls, bPoints, resolution, evenDistribution = False, forBones = False):
+    def gen_points_from_bPoints(cls, bPoints, resolution, evenDistribution = False):
         points = []
         numBezSegments = len(bPoints) - 1
-        if(evenDistribution):        
+        if(evenDistribution):
             LUTResolution = resolution
             LUTS = []
 
@@ -429,7 +426,7 @@ class PointTools:
             handle1 = b1.handle_right
             knot2 = b2.co
             handle2 = b2.handle_left
-            
+
             for i in range(numBezSegments):
                 b1 = bPoints[i]
                 b2 = bPoints[i+1]
@@ -443,10 +440,19 @@ class PointTools:
                 points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, 0.0))
                 #calculating points on curve segments
                 for i in range(1,resolution):
-                    t = i/(resolution)  
+                    t = i/(resolution)
                     points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, t))
 
             points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, 1.0))
+
+        return points
+
+    @classmethod
+    def gen_points_along_vector(cls, loc, dir, distance, numPoints):
+        points = []
+        delta = distance / (numPoints-1)
+        for i in range(numPoints):
+            points.append((i * delta * dir) + loc)
 
         return points
 

@@ -142,11 +142,74 @@ class Add_Twist_Constraints(bpy.types.Operator):
         return {"FINISHED"}
     def invoke(self, context, event):
         wm = context.window_manager
-        return wm.invoke_props_dialog(self)   
+        return wm.invoke_props_dialog(self)
 
 #
 #Bone Generation
 #
+class Subdivide_Bones(bpy.types.Operator):
+    bl_idname = "armature.subdivide_bones"
+    bl_label = "Subdivide Bones"
+    bl_description = "Subdivide Bones with a naming order that starts at head bone"
+
+    @classmethod
+    def poll(self, context):
+        return Poll.check_poll(activeType="ARMATURE", activeMode="EDIT") and len(context.selected_editable_bones) > 0
+
+    #
+    #Go back over this and clean/optimize
+    #
+    def execute(self, context):
+        bpy.ops.armature.subdivide()
+        bones = context.selected_editable_bones
+
+        allBones = {}
+        for bone in context.active_object.data.edit_bones:
+            allBones[bone.name] = bone
+
+        uniqueBones = {}
+        for bone in bones:
+            name = Naming.split(bone.name)
+            name = name[0] + name[2]
+            if(name not in uniqueBones):
+                head = bone
+                if(name not in uniqueBones):
+                    while(head.parent in bones and Naming.compare_names(head.parent.name, name, trim1 = True)):
+                        head = head.parent
+                uniqueBones[name] = head
+
+        RigRename = 1111
+        for key in uniqueBones:
+            bone = uniqueBones[key]
+            children = bone.children
+            bone.name = Naming.rename(bone.name)
+            count = int('0' + Naming.split(bone.name)[1])
+            while(True):
+                count += 1
+                bone = children[0]
+                children = bone.children
+                split = Naming.split(bone.name)
+                if(split[0] + split[2] != key):
+                    break
+
+                newName = split[0] + "." + str(count).zfill(3) + split[2]
+                if(newName in allBones):
+                    allBones[newName].name += "." + str(RigRename)
+                    RigRename += 1
+
+                if(bone.name in allBones):
+                    del allBones[bone.name]
+
+                bone.name = newName
+
+                if(len(bone.children) == 0):
+                    break
+                check = Naming.split(bone.name)
+                check = check[0] + check[2]
+                if(check != key):
+                    break
+
+        return {"FINISHED"}
 
 class Gen_Bone_Copies(bpy.types.Operator):
     bl_idname = "armature.gen_bone_copies"
@@ -433,11 +496,10 @@ class Snap_Bones_to_Curve(bpy.types.Operator):
 
         spline = objCurve.data.splines[0]#each spline is a separate curve in the object
         bPoints = BezierPoint.copyList(spline.bezier_points)#bPoints represent the handles of the curve. two bPoints make a segment
-        
+
         numCurveSegments = len(bPoints) - 1
         resolution = int(len(bones) / numCurveSegments)#number of points per segment
 
-        #for i in range(len(bPoints)):#translate bPoints into armature space
         PointTools.bPoints_translate_space(bPoints, objCurve, objArmature)
 
         #Snaps bones evenly along the curve
@@ -625,10 +687,12 @@ class Gen_Bone_Curve(bpy.types.Operator):
     def execute(self, context):
         objCurve = None
         objArmature = context.active_object
-        for obj in context.selected_active_objects:
+        bpy.ops.object.mode_set(mode="OBJECT")
+        for obj in context.selected_objects:
             if obj is not objArmature:
                 objCurve = obj
-        initMode = objArmature.mode
+
+        bpy.ops.object.mode_set(mode="EDIT")
 
         #get curve information
         spline = objCurve.data.splines[0]#each spline is a separate curve in the object
