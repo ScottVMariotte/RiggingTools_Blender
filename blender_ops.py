@@ -51,11 +51,11 @@ class Add_Many_Constraints(bpy.types.Operator):
     bl_idname = "armature.add_many_constraints"
     bl_label = "add Many constraints"
     bl_description = "Adds constraints to selected bones with target as active bone."
-    
+
     def getConstraintTuples(self, context):
         constraints = ['COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE', 'COPY_TRANSFORMS', 'LIMIT_DISTANCE', 'LIMIT_LOCATION', 'LIMIT_ROTATION', 'LIMIT_SCALE', 'TRANSFORM', 'CLAMP_TO', 'DAMPED_TRACK', 'LOCKED_TRACK', 'STRETCH_TO', 'TRACK_TO', 'CHILD_OF']
 
-        tuples = [] 
+        tuples = []
         for constraint in constraints:
             tuples.append((constraint,constraint,constraint))
 
@@ -66,7 +66,7 @@ class Add_Many_Constraints(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (Poll.check_poll(activeType = "ARMATURE", activeMode = "POSE", numObjs = 1) and 
+        return (Poll.check_poll(activeType = "ARMATURE", activeMode = "POSE", numObjs = 1) and
                 len(context.selected_pose_bones) > 2)
 
     def execute(self, context):
@@ -404,8 +404,8 @@ class Gen_Constrain_Bones(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return (Poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT") and 
-                len(context.selected_editable_bones) > 0 and 
+        return (Poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT") and
+                len(context.selected_editable_bones) > 0 and
                 ArmatureTools.is_contiguous_branchless(context.selected_editable_bones)
                 )
 
@@ -476,14 +476,14 @@ class Snap_Bones_to_Curve(bpy.types.Operator):
     bl_description = "Creates a chain of stretchy Bones with ctrl bones"
 
     options = [("Even","Even",""),("Closest","Closest Points","")]
-    #options = [("Closest","Closest Points","")] 
+    #options = [("Closest","Closest Points","")]
 
     snapType: bpy.props.EnumProperty(items=options, name='Snap Type', description = "How the bones should snap to curve")
     draw: bpy.props.BoolProperty(name='Draw')
 
     @classmethod
     def poll(cls, context):
-        return (Poll.check_poll(types = "ARMATURE,CURVE", activeType = "ARMATURE", activeMode = "EDIT", numObjs = 2) and 
+        return (Poll.check_poll(types = "ARMATURE,CURVE", activeType = "ARMATURE", activeMode = "EDIT", numObjs = 2) and
                 len(context.selected_editable_bones) > 0)
 
     def execute(self, context):
@@ -590,13 +590,13 @@ class Gen_Bone_Chain_From_Bones(bpy.types.Operator):
     prefix: bpy.props.StringProperty(name="Preffix")
     suffix: bpy.props.StringProperty(name="Suffix")
     axis: bpy.props.EnumProperty(items=getAxisTuples, name='Axis', description = "Choose Axis")
-    
+
     avgDir: bpy.props.BoolProperty(name="AvgDirections?")
 
     @classmethod
     def poll(cls, context):
-            return (Poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT") and 
-                    len(context.selected_editable_bones) > 0 and 
+            return (Poll.check_poll(activeType = "ARMATURE", activeMode = "EDIT") and
+                    len(context.selected_editable_bones) > 0 and
                     ArmatureTools.is_contiguous_branchless(context.selected_editable_bones))
 
     def execute(self, context):
@@ -614,13 +614,13 @@ class Gen_Bone_Chain_From_Bones(bpy.types.Operator):
         for bone in selected:
             axis = bone.x_axis
             if(self.axis == "X"):
-                axis = bone.x_axis 
+                axis = bone.x_axis
             elif(self.axis == "-X"):
-                axis = bone.x_axis * -1 
+                axis = bone.x_axis * -1
             elif(self.axis == "Z"):
-                axis = bone.z_axis 
+                axis = bone.z_axis
             elif(self.axis == "-Z"):
-                axis = bone.z_axis * -1 
+                axis = bone.z_axis * -1
             else:
                 return {"CANCELLED"}
 

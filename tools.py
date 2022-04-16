@@ -3,14 +3,15 @@ import mathutils
 import math
 import re
 
-#TODO Finish gen Bone name / Parse bone name
+# TODO Finish gen Bone name / Parse bone name
+
 
 class SimpleMaths:
 
     @classmethod
-    def find_factors(cls,num):
+    def find_factors(cls, num):
         nums = []
-        for i in range(1,num+1):
+        for i in range(1, num+1):
             if(num % i == 0):
                 nums.append(i)
         return nums
@@ -26,14 +27,15 @@ class SimpleMaths:
         otherRot.resize_4x4()
         otherRot.transpose()
 
-        return( otherRot @
-                mathutils.Matrix.Translation(otherLoc * -1) @
-                mathutils.Matrix.Translation(localLoc) @
-                LocalRot
-                )
+        return(otherRot @
+               mathutils.Matrix.Translation(otherLoc * -1) @
+               mathutils.Matrix.Translation(localLoc) @
+               LocalRot
+               )
+
 
 class BezierPoint:
-    def __init__(self, handle_right = None, handle_left = None, co = None, bPoint = None):
+    def __init__(self, handle_right=None, handle_left=None, co=None, bPoint=None):
         pass
         if(bPoint is not None):
             self.handle_right = bPoint.handle_right.copy()
@@ -48,8 +50,9 @@ class BezierPoint:
     def copyList(cls, bPoints):
         points = []
         for i in range(len(bPoints)):
-            points.append(cls(bPoint = bPoints[i]))
+            points.append(cls(bPoint=bPoints[i]))
         return points
+
 
 class Poll:
 
@@ -95,14 +98,15 @@ class Poll:
         return bpy.context.active_object == None
 
     @classmethod
-    def check_poll(cls, types = "", activeType = "", activeMode = "", numObjs = -1):
+    def check_poll(cls, types="", activeType="", activeMode="", numObjs=-1):
         return (
-                not cls.is_active_none() and
-                (cls.num_objects() == numObjs or numObjs == -1) and
-                cls.is_types_selected(types) and
-                cls.is_type_active(activeType) and
-                cls.is_active_mode(activeMode)
-                )
+            not cls.is_active_none() and
+            (cls.num_objects() == numObjs or numObjs == -1) and
+            cls.is_types_selected(types) and
+            cls.is_type_active(activeType) and
+            cls.is_active_mode(activeMode)
+        )
+
 
 class Naming:
 
@@ -112,7 +116,7 @@ class Naming:
         return splitName[0] + splitName[2]
 
     @classmethod
-    def compare_names(cls, name1, name2, trim1 = False, trim2 = False):
+    def compare_names(cls, name1, name2, trim1=False, trim2=False):
         if(trim1):
             name1 = Naming.split(name1)
             name1 = name1[0] + name1[2]
@@ -144,7 +148,7 @@ class Naming:
         return (name[0:-1], nums, mirror)
 
     @classmethod
-    def gen_new(cls, name, count = -1, prefix = "", suffix = "", mirror = ""):
+    def gen_new(cls, name, count=-1, prefix="", suffix="", mirror=""):
         if mirror != "":
             mirror = "." + mirror
         if count != -1:
@@ -154,7 +158,7 @@ class Naming:
 
         return prefix + name + suffix + count + mirror
 
-    #TODO: make this do somthing
+    # TODO: make this do somthing
     @classmethod
     def rename(cls, name):
         name = cls.split(name)
@@ -162,6 +166,7 @@ class Naming:
             return name[0] + "." + str(int(name[1])).zfill(3) + name[2]
 
         return name[0] + name[1] + name[2]
+
 
 class ArmatureTools:
 
@@ -235,11 +240,11 @@ class ArmatureTools:
             bones[i].tail = points[i+1]
 
     @classmethod
-    def gen_bones_along_points(cls, editBones, points, names, parents = True, useConnect = True, offset = 1, rolls = 0):
+    def gen_bones_along_points(cls, editBones, points, names, parents=True, useConnect=True, offset=1, rolls=0):
         bones = []
 
         boneLast = None
-        for i in range(0,len(points) - 1, offset):
+        for i in range(0, len(points) - 1, offset):
             newName = names[int(i/offset)]
             roll = rolls[i] if (type(rolls) == list) else rolls
 
@@ -255,21 +260,22 @@ class ArmatureTools:
 
             boneLast = bone
 
+
 class PointTools:
-    
+
     @classmethod
     def __T_to_point(cls, p0, p1, p2, p3, t):
-        t2 = math.pow(t,2)
-        t3 = math.pow(t,3)
-        return  (((-1 * p0 * t3) + (3 * p0 * t2) - (3 * p0 * t) + p0) + 
-                ((3 * p1 * t3) - (6 * p1 * t2) + (3 * p1 * t)) + 
-                ((-3 * p2 * t3) + 3 * p2 * t2) + 
+        t2 = math.pow(t, 2)
+        t3 = math.pow(t, 3)
+        return (((-1 * p0 * t3) + (3 * p0 * t2) - (3 * p0 * t) + p0) +
+                ((3 * p1 * t3) - (6 * p1 * t2) + (3 * p1 * t)) +
+                ((-3 * p2 * t3) + 3 * p2 * t2) +
                 (p3 * t3))
 
     @classmethod
     def __distance_to_T(cls, LUT, distance):
         n = len(LUT)
-        
+
         for i in range(n-1):
             prevDist = LUT[i]
             nextDist = LUT[i+1]
@@ -293,11 +299,11 @@ class PointTools:
         return numLUTS-1
 
     @classmethod
-    def gen_points_from_bones(cls, bones, offset = 1):
+    def gen_points_from_bones(cls, bones, offset=1):
         points = []
         points.append(bones[0].head)
         numPoints = int(len(bones) / offset) + 1
-        for i in range(1,numPoints):
+        for i in range(1, numPoints):
             index = int((i * offset)) - 1
             points.append(bones[index].tail)
 
@@ -313,12 +319,13 @@ class PointTools:
         return points
 
     @classmethod
-    def gen_points_tangent_to_points(cls, points, directions, distance, includeOriginal = False, avrageDirections = False):
+    def gen_points_tangent_to_points(cls, points, directions, distance, includeOriginal=False, avrageDirections=False):
         newPoints = []
         numPoints = len(points)
         dirSingle = type(directions) != list
         if(dirSingle and len(points) > directions):
-            raise "Error in " + __name__ + " : number of direction vectors is less than number of points!"
+            raise "Error in " + __name__ + \
+                " : number of direction vectors is less than number of points!"
             return points
 
         for i in range(numPoints):
@@ -332,7 +339,7 @@ class PointTools:
                 direction = directions[i]
 
             if(includeOriginal):
-                newPoints.append(points[i] * mathutils.Vector((1,1,1)))
+                newPoints.append(points[i] * mathutils.Vector((1, 1, 1)))
 
             newPoints.append(points[i] + (direction * distance))
 
@@ -355,7 +362,7 @@ class PointTools:
             bp.co = mat @ bp.co
 
     @classmethod
-    def gen_points_from_bPoints(cls, bPoints, resolution, evenDistribution = False):
+    def gen_points_from_bPoints(cls, bPoints, resolution, evenDistribution=False):
         points = []
         numBezSegments = len(bPoints) - 1
         if(evenDistribution):
@@ -364,12 +371,13 @@ class PointTools:
 
             curveLength = 0
             points = cls.gen_points_from_bPoints(bPoints, LUTResolution)
-            #calculating cumulative distance from point to point along each curve segment
+            # calculating cumulative distance from point to point along each curve segment
             for i in range(numBezSegments):
-                LUT = [0.0]              #cumulative distnace values get put here
+                LUT = [0.0]  # cumulative distnace values get put here
                 for j in range(LUTResolution):
                     index = (i * (LUTResolution)) + j
-                    distance = math.dist(points[index],points[index + 1]) + LUT[j]
+                    distance = math.dist(
+                        points[index], points[index + 1]) + LUT[j]
                     LUT.append(distance)
                 LUTS.append(LUT)
                 curveLength += LUT[-1]
@@ -378,21 +386,24 @@ class PointTools:
             delta = curveLength / (resolution * numBezSegments)
             resolution = (resolution * numBezSegments) + numBezSegments
 
-            #bezier handle info
+            # bezier handle info
             knot1 = bPoints[0].co
             handle1 = bPoints[0].handle_right
             knot2 = bPoints[1].co
             handle2 = bPoints[1].handle_left
 
-            LUTIndex = 0    #current distance table index
-            LUTdistance = 0 #stores the cumulative distance of the LUT tables as we go
+            LUTIndex = 0  # current distance table index
+            LUTdistance = 0  # stores the cumulative distance of the LUT tables as we go
 
-            points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, 0.0))
-            for i in range(1,resolution):
+            points.append(cls.__T_to_point(
+                knot1, handle1, handle2, knot2, 0.0))
+            for i in range(1, resolution):
                 distance = i * delta
 
-                newLUTIndex = cls.__distance_to_Lut_Index(LUTS, distance)#get the relevant distnace table index
-                if(newLUTIndex != LUTIndex):#if we pass into a new distance table we need to update cumulative distance
+                # get the relevant distnace table index
+                newLUTIndex = cls.__distance_to_Lut_Index(LUTS, distance)
+                # if we pass into a new distance table we need to update cumulative distance
+                if(newLUTIndex != LUTIndex):
                     LUTdistance += LUTS[LUTIndex][LUTResolution-1]
                     LUTIndex = newLUTIndex
 
@@ -404,7 +415,7 @@ class PointTools:
                 distance -= LUTdistance
 
                 t = 1.0
-                #search through LUT and find t value
+                # search through LUT and find t value
                 for i in range(LUTResolution-1):
                     prevDist = LUT[i]
                     nextDist = LUT[i+1]
@@ -414,14 +425,15 @@ class PointTools:
                         t = (distance - prevDist) / (nextDist - prevDist)
                         t = ((1.0 - t) * prevT) + (t * nextT)
 
-                points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, t))
+                points.append(cls.__T_to_point(
+                    knot1, handle1, handle2, knot2, t))
 
         else:
 
             b1 = bPoints[0]
             b2 = bPoints[1]
 
-            #get handles from bez point
+            # get handles from bez point
             knot1 = b1.co
             handle1 = b1.handle_right
             knot2 = b2.co
@@ -431,19 +443,22 @@ class PointTools:
                 b1 = bPoints[i]
                 b2 = bPoints[i+1]
 
-                #get handles from bez point
+                # get handles from bez point
                 knot1 = b1.co
                 handle1 = b1.handle_right
                 knot2 = b2.co
                 handle2 = b2.handle_left
 
-                points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, 0.0))
-                #calculating points on curve segments
-                for i in range(1,resolution):
+                points.append(cls.__T_to_point(
+                    knot1, handle1, handle2, knot2, 0.0))
+                # calculating points on curve segments
+                for i in range(1, resolution):
                     t = i/(resolution)
-                    points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, t))
+                    points.append(cls.__T_to_point(
+                        knot1, handle1, handle2, knot2, t))
 
-            points.append(cls.__T_to_point(knot1, handle1, handle2, knot2, 1.0))
+            points.append(cls.__T_to_point(
+                knot1, handle1, handle2, knot2, 1.0))
 
         return points
 
