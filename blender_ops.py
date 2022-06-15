@@ -6,11 +6,54 @@ import re
 
 from . tools import *
 
-# TODO: run through each command and make a checklist of what to fix
+# TODO: Follow blender addon Style Conventions
 
-#
-# Constraint Operations
-#
+class Mod_Constraint_Space(bpy.types.Operator):
+    bl_idname = "armature.mod_constraints_space"
+    bl_label = "mod constraints space"
+    bl_description = "Allows enable/disable of all selected bones."
+
+    def getConstraints(self, context):
+        tuples = [("No Filter", "No Filter", "No Filter")]
+        [tuples.append(constraint)
+         for constraint in ConstraintInfo.getConstraints()]
+        return tuples
+
+    def getOwnerSpaces(self, context):
+        tuples = [("No Change", "No Change", "No Change")]
+        [tuples.append(space) for space in ConstraintInfo.getOwnerSpaces()]
+        return tuples
+
+    def getTargetSpaces(self, context):
+        tuples = [("No Change", "No Change", "No Change")]
+        [tuples.append(space) for space in ConstraintInfo.getTargetSpaces()]
+        return tuples
+
+    constraintFilter: bpy.props.EnumProperty(
+        items=getConstraints, name='Filter', description="Choose sconstraint type to affect")
+    targetSpace: bpy.props.EnumProperty(
+        items=getTargetSpaces, name='Target Space', description="Choose space here")
+    ownerSpace: bpy.props.EnumProperty(
+        items=getOwnerSpaces, name='Owner Space', description="Choose space here")
+
+    @ classmethod
+    def poll(cls, context):
+        return Poll.check_poll(activeType="ARMATURE", activeMode="POSE", minBones=1)
+
+    def execute(self, context):
+        selected = context.selected_pose_bones
+
+        for bone in selected:
+            for constraint in bone.constraints:
+                if(constraint.name == self.constraintFilter or self.constraintFilter == "No Filter"):
+                    constraint.target_space = constraint.target_space if self.targetSpace == "No Change" else self.targetSpace
+                    constraint.owner_space = constraint.owner_space if self.ownerSpace == "No Change" else self.ownerSpace
+
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
 
 
 class Toggle_Constraints(bpy.types.Operator):
@@ -20,7 +63,7 @@ class Toggle_Constraints(bpy.types.Operator):
 
     Toggle: bpy.props.BoolProperty(name="On?")
 
-    @classmethod
+    @ classmethod
     def poll(cls, context):
         return Poll.check_poll(activeType="ARMATURE", activeMode="POSE", numObjs=1)
 
@@ -41,7 +84,7 @@ class Remove_Constraints(bpy.types.Operator):
     bl_label = "remove constraints"
     bl_description = "Removes constraints from all selected bones."
 
-    @classmethod
+    @ classmethod
     def poll(cls, context):
         return Poll.check_poll(activeType="ARMATURE", activeMode="POSE", numObjs=1)
 
@@ -59,20 +102,13 @@ class Add_Many_Constraints(bpy.types.Operator):
     bl_description = "Adds constraints to selected bones with target as active bone."
 
     def getConstraintTuples(self, context):
-        constraints = ['COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE', 'COPY_TRANSFORMS', 'LIMIT_DISTANCE', 'LIMIT_LOCATION',
-                       'LIMIT_ROTATION', 'LIMIT_SCALE', 'TRANSFORM', 'CLAMP_TO', 'DAMPED_TRACK', 'LOCKED_TRACK', 'STRETCH_TO', 'TRACK_TO', 'CHILD_OF']
-
-        tuples = []
-        for constraint in constraints:
-            tuples.append((constraint, constraint, constraint))
-
-        return tuples
+        return ConstraintInfo.getConstraints()
 
     influence: bpy.props.FloatProperty(name="influence")
     selectedConstraint: bpy.props.EnumProperty(
         items=getConstraintTuples, name='Select Constraint', description="Choose constraint here")
 
-    @classmethod
+    @ classmethod
     def poll(cls, context):
         return (Poll.check_poll(activeType="ARMATURE", activeMode="POSE", numObjs=1) and
                 len(context.selected_pose_bones) > 2)
@@ -105,7 +141,7 @@ class Add_Twist_Constraints(bpy.types.Operator):
     bl_description = "Adds twist to selected bones with active as target."
     fromHead: bpy.props.BoolProperty(name="From Head?")
 
-    @classmethod
+    @ classmethod
     def poll(cls, context):
         return Poll.check_poll(activeType="ARMATURE", activeMode="POSE")
 
@@ -504,7 +540,7 @@ class Snap_Bones_to_Curve(bpy.types.Operator):
     bl_description = "Creates a chain of stretchy Bones with ctrl bones"
 
     options = [("Even", "Even", ""), ("Closest", "Closest Points", "")]
-    #options = [("Closest","Closest Points","")]
+    # options = [("Closest","Closest Points","")]
 
     snapType: bpy.props.EnumProperty(
         items=options, name='Snap Type', description="How the bones should snap to curve")
