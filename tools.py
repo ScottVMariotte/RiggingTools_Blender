@@ -3,7 +3,41 @@ import mathutils
 import math
 import re
 
-# TODO Finish gen Bone name / Parse bone name
+
+class ConstraintInfo:
+    # Clean up This class
+    @classmethod
+    def getConstraints(cls):
+        constraints = ['COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE', 'COPY_TRANSFORMS', 'LIMIT_DISTANCE', 'LIMIT_LOCATION',
+                       'LIMIT_ROTATION', 'LIMIT_SCALE', 'TRANSFORM', 'CLAMP_TO', 'DAMPED_TRACK', 'LOCKED_TRACK', 'STRETCH_TO', 'TRACK_TO', 'CHILD_OF']
+
+        tuples = []
+        for constraint in constraints:
+            tuples.append((constraint, constraint, constraint))
+
+        return tuples
+
+    @classmethod
+    def getOwnerSpaces(cls):
+        spaces = ['WORLD', 'CUSTOM', 'POSE',
+                  'LOCAL_WITH_PARENT', 'LOCAL']
+
+        tuples = []
+        for space in spaces:
+            tuples.append((space, space, space))
+
+        return tuples
+
+    @classmethod
+    def getTargetSpaces(cls):
+        spaces = ['WORLD', 'CUSTOM', 'POSE',
+                  'LOCAL_WITH_PARENT', 'LOCAL', 'LOCAL_OWNER_ORIENT']
+
+        tuples = []
+        for space in spaces:
+            tuples.append((space, space, space))
+
+        return tuples
 
 
 class SimpleMaths:
@@ -71,6 +105,14 @@ class Poll:
         return len(bpy.context.selected_editable_objects)
 
     @classmethod
+    def num_bones(cls):
+        if(bpy.context.mode == "POSE"):
+            return len(bpy.context.selected_pose_bones)
+        elif(bpy.context.mode == "EDIT"):
+            return len(bpy.context.selected_editable_bones)
+        return -1
+
+    @classmethod
     def is_types_selected(cls, types):
         if(types == ""):
             return True
@@ -98,13 +140,14 @@ class Poll:
         return bpy.context.active_object == None
 
     @classmethod
-    def check_poll(cls, types="", activeType="", activeMode="", numObjs=-1):
+    def check_poll(cls, types="", activeType="", activeMode="", numObjs=-1, minBones=-1):
         return (
             not cls.is_active_none() and
             (cls.num_objects() == numObjs or numObjs == -1) and
             cls.is_types_selected(types) and
             cls.is_type_active(activeType) and
-            cls.is_active_mode(activeMode)
+            cls.is_active_mode(activeMode) and
+            ((activeType == "ARMATURE" and cls.num_bones() >= minBones) or minBones == -1)
         )
 
 
