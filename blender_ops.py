@@ -8,6 +8,7 @@ from . tools import *
 
 # TODO: Follow blender addon Style Conventions
 
+
 class Mod_Constraint_Space(bpy.types.Operator):
     bl_idname = "armature.mod_constraints_space"
     bl_label = "mod constraints space"
@@ -185,6 +186,40 @@ class Add_Twist_Constraints(bpy.types.Operator):
                     constraint.influence = val
 
         bpy.ops.object.mode_set(mode=initMode)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+#
+# Bone Modification
+#
+
+
+class MergeParentByDistance(bpy.types.Operator):
+    bl_idname = "armature.merge_parent_by_distance"
+    bl_label = "Merge Parent By Distance"
+    bl_description = "Connects bones to parents based on distance."
+
+    distance: bpy.props.FloatProperty(
+        name="Merge Distance", min=0.00001, precision=4, step=1)
+
+    @classmethod
+    def poll(self, context):
+        return Poll.check_poll(activeType="ARMATURE", activeMode="EDIT", minBones=1)
+
+    def execute(self, context):
+        bones = context.selected_editable_bones
+
+        for bone in bones:
+            pTail = bone.parent
+            if(pTail is not None):
+                pTail = pTail.tail
+                cHead = bone.head
+                if(math.dist(pTail, cHead) < self.distance):
+                    bone.use_connect = True
+
         return {"FINISHED"}
 
     def invoke(self, context, event):
