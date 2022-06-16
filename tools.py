@@ -106,9 +106,9 @@ class Poll:
 
     @classmethod
     def num_bones(cls):
-        if(bpy.context.mode == "POSE"):
+        if(cls.is_active_mode("POSE")):
             return len(bpy.context.selected_pose_bones)
-        elif(bpy.context.mode == "EDIT"):
+        elif(cls.is_active_mode("EDIT")):
             return len(bpy.context.selected_editable_bones)
         return -1
 
@@ -141,6 +141,7 @@ class Poll:
 
     @classmethod
     def check_poll(cls, types="", activeType="", activeMode="", numObjs=-1, minBones=-1):
+
         return (
             not cls.is_active_none() and
             (cls.num_objects() == numObjs or numObjs == -1) and
