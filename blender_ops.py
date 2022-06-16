@@ -272,7 +272,7 @@ class Gen_Bone_Copies(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return Poll.check_poll(activeType="ARMATURE", activeMode="EDIT")
+        return Poll.check_poll(activeType="ARMATURE", activeMode="EDIT", minBones=1)
 
     def execute(self, context):
         eidit_bones = context.active_object.data.edit_bones
