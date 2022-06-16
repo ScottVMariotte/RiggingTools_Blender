@@ -12,7 +12,6 @@ classes = {blender_ops.Gen_Bone_Curve,
            blender_ops.Gen_Bone_Chain_From_Bones,
            blender_ops.Gen_Bone_Copies,
            blender_ops.Subdivide_Bones,
-           blender_ops.Mod_Constraint_Space,
            blender_ops.MergeParentByDistance
            }
 
