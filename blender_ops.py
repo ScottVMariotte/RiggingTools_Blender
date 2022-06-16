@@ -9,54 +9,6 @@ from . tools import *
 # TODO: Follow blender addon Style Conventions
 
 
-class Mod_Constraint_Space(bpy.types.Operator):
-    bl_idname = "armature.mod_constraints_space"
-    bl_label = "mod constraints space"
-    bl_description = "Allows enable/disable of all selected bones."
-
-    def getConstraints(self, context):
-        tuples = [("No Filter", "No Filter", "No Filter")]
-        [tuples.append(constraint)
-         for constraint in ConstraintInfo.getConstraints()]
-        return tuples
-
-    def getOwnerSpaces(self, context):
-        tuples = [("No Change", "No Change", "No Change")]
-        [tuples.append(space) for space in ConstraintInfo.getOwnerSpaces()]
-        return tuples
-
-    def getTargetSpaces(self, context):
-        tuples = [("No Change", "No Change", "No Change")]
-        [tuples.append(space) for space in ConstraintInfo.getTargetSpaces()]
-        return tuples
-
-    constraintFilter: bpy.props.EnumProperty(
-        items=getConstraints, name='Filter', description="Choose sconstraint type to affect")
-    targetSpace: bpy.props.EnumProperty(
-        items=getTargetSpaces, name='Target Space', description="Choose space here")
-    ownerSpace: bpy.props.EnumProperty(
-        items=getOwnerSpaces, name='Owner Space', description="Choose space here")
-
-    @ classmethod
-    def poll(cls, context):
-        return Poll.check_poll(activeType="ARMATURE", activeMode="POSE", minBones=1)
-
-    def execute(self, context):
-        selected = context.selected_pose_bones
-
-        for bone in selected:
-            for constraint in bone.constraints:
-                if(constraint.name == self.constraintFilter or self.constraintFilter == "No Filter"):
-                    constraint.target_space = constraint.target_space if self.targetSpace == "No Change" else self.targetSpace
-                    constraint.owner_space = constraint.owner_space if self.ownerSpace == "No Change" else self.ownerSpace
-
-        return {"FINISHED"}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-
-
 class Toggle_Constraints(bpy.types.Operator):
     bl_idname = "armature.toggle_constraints"
     bl_label = "toggle constraints"
