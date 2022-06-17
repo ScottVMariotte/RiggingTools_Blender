@@ -169,8 +169,7 @@ class MergeParentByDistance(bpy.types.Operator):
             if(pTail is not None):
                 pTail = pTail.tail
                 cHead = bone.head
-                if(math.dist(pTail, cHead) < self.distance):
-                    bone.use_connect = True
+                bone.use_connect = math.dist(pTail, cHead) < self.distance
 
         return {"FINISHED"}
 
