@@ -92,7 +92,10 @@ class Add_Twist_Constraints(bpy.types.Operator):
     bl_idname = "armature.add_twist_onstraints"
     bl_label = "Add Twist Constraints"
     bl_description = "Adds twist to selected bones with active as target."
+
     fromHead: bpy.props.BoolProperty(name="From Head?")
+    SilenceInfluence: bpy.props.BoolProperty(
+        name="Silence Influence?", description="If from head is selected the last bone will not move when control is rotated")
 
     @ classmethod
     def poll(cls, context):
@@ -114,8 +117,10 @@ class Add_Twist_Constraints(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='POSE')
         poseBones = context.active_object.pose.bones
 
-        for i in range(len(bones)):
-            bone = poseBones[poseBones.find(bones[i])]
+        num_bones = len(bones)
+        val = (1/(num_bones+1))
+        for i in range(1, num_bones+1):
+            bone = poseBones[poseBones.find(bones[i-1])]
 
             constraint = bone.constraints.new("COPY_ROTATION")
             constraint.target = context.active_object
@@ -126,14 +131,14 @@ class Add_Twist_Constraints(bpy.types.Operator):
             constraint.use_z = False
 
             if(unconnected):
-                subIndex = ((self.fromHead * ((len(bones)) - i))) + \
-                    ((not self.fromHead) * (i + 1))
-                constraint.influence = subIndex * ((1/(len(bones)+1)))
+                subIndex = i if not self.fromHead else num_bones - \
+                    (i - 1) if not self.SilenceInfluence else num_bones - i
+                constraint.influence = subIndex * val
             else:
-                val = (1/(len(bones)+1))
                 if(self.fromHead):
-                    constraint.invert_y = i != 0
-                    constraint.influence = val if i != 0 else 1 - val
+                    constraint.invert_y = i > 1
+                    constraint.influence = (
+                        1-val) if i == 1 else val if not self.SilenceInfluence else ((1-val)/(num_bones-1))
                 else:
                     constraint.influence = val
 
