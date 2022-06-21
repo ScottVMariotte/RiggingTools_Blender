@@ -18,7 +18,7 @@ class Toggle_Constraints(bpy.types.Operator):
 
     @ classmethod
     def poll(cls, context):
-        return Poll.check_poll(activeType="ARMATURE", activeMode="POSE", numObjs=1)
+        return Poll.check_poll(activeType="ARMATURE", activeMode="POSE", minBones=1)
 
     def execute(self, context):
         selected = context.selected_pose_bones
@@ -39,7 +39,7 @@ class Remove_Constraints(bpy.types.Operator):
 
     @ classmethod
     def poll(cls, context):
-        return Poll.check_poll(activeType="ARMATURE", activeMode="POSE", numObjs=1)
+        return Poll.check_poll(activeType="ARMATURE", activeMode="POSE", minBones=1)
 
     def execute(self, context):
         selected = context.selected_pose_bones
@@ -99,7 +99,7 @@ class Add_Twist_Constraints(bpy.types.Operator):
 
     @ classmethod
     def poll(cls, context):
-        return Poll.check_poll(activeType="ARMATURE", activeMode="POSE")
+        return Poll.check_poll(activeType="ARMATURE", activeMode="POSE", minBones=1)
 
     def execute(self, context):
         initMode = context.active_object.mode
