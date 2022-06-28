@@ -1,17 +1,17 @@
 import bpy
 from . import blender_ops
 
-classes = {blender_ops.Gen_Bone_Curve,
-           blender_ops.Snap_Bones_to_Curve,
-           blender_ops.Gen_Constrain_Bones,
-           blender_ops.Gen_Eye_Bones,
-           blender_ops.Add_Twist_Constraints,
-           blender_ops.Remove_Constraints,
-           blender_ops.Add_Many_Constraints,
-           blender_ops.Toggle_Constraints,
-           blender_ops.Gen_Bone_Chain_From_Bones,
-           blender_ops.Gen_Bone_Copies,
-           blender_ops.Subdivide_Bones,
+classes = {blender_ops.GenBoneCurve,
+           blender_ops.SnapBonestoCurve,
+           blender_ops.GenConstrainBones,
+           blender_ops.GenEyeBones,
+           blender_ops.AddTwistConstraints,
+           blender_ops.RemoveConstraints,
+           blender_ops.AddManyConstraints,
+           blender_ops.ToggleConstraints,
+           blender_ops.GenBoneChainFromBones,
+           blender_ops.GenBoneCopies,
+           blender_ops.SubdivideBones,
            blender_ops.MergeParentByDistance
            }
 

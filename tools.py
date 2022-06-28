@@ -1,7 +1,7 @@
 import bpy
-import mathutils
-import math
-import re
+from mathutils import Matrix, Vector
+from math import dist
+from re import search
 
 
 class ConstraintInfo:
@@ -141,7 +141,6 @@ class Poll:
 
     @classmethod
     def check_poll(cls, types="", activeType="", activeMode="", numObjs=-1, minBones=-1):
-
         return (
             not cls.is_active_none() and
             (cls.num_objects() == numObjs or numObjs == -1) and

@@ -1,15 +1,14 @@
 import bpy
-import mathutils
-import math
-import bmesh
-import re
+
+from bmesh import from_edit_mesh
+from mathutils import Matrix
+from math import dist
+from re import sub
 
 from . tools import *
 
-# TODO: Follow blender addon Style Conventions
 
-
-class Toggle_Constraints(bpy.types.Operator):
+class ToggleConstraints(bpy.types.Operator):
     bl_idname = "armature.toggle_constraints"
     bl_label = "toggle constraints"
     bl_description = "Allows enable/disable of all selected bones."
@@ -32,7 +31,7 @@ class Toggle_Constraints(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class Remove_Constraints(bpy.types.Operator):
+class RemoveConstraints(bpy.types.Operator):
     bl_idname = "armature.remove_constraints"
     bl_label = "remove constraints"
     bl_description = "Removes constraints from all selected bones."
@@ -49,7 +48,7 @@ class Remove_Constraints(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class Add_Many_Constraints(bpy.types.Operator):
+class AddManyConstraints(bpy.types.Operator):
     bl_idname = "armature.add_many_constraints"
     bl_label = "add Many constraints"
     bl_description = "Adds constraints to selected bones with target as active bone."
@@ -88,7 +87,7 @@ class Add_Many_Constraints(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class Add_Twist_Constraints(bpy.types.Operator):
+class AddTwistConstraints(bpy.types.Operator):
     bl_idname = "armature.add_twist_onstraints"
     bl_label = "Add Twist Constraints"
     bl_description = "Adds twist to selected bones with active as target."
@@ -162,7 +161,7 @@ class MergeParentByDistance(bpy.types.Operator):
     distance: bpy.props.FloatProperty(
         name="Merge Distance", min=0.00001, precision=4, step=1)
 
-    @classmethod
+    @ classmethod
     def poll(self, context):
         return Poll.check_poll(activeType="ARMATURE", activeMode="EDIT", minBones=1)
 
@@ -187,12 +186,12 @@ class MergeParentByDistance(bpy.types.Operator):
 #
 
 
-class Subdivide_Bones(bpy.types.Operator):
+class SubdivideBones(bpy.types.Operator):
     bl_idname = "armature.subdivide_bones"
     bl_label = "Subdivide Bones"
     bl_description = "Subdivide Bones with a naming order that starts at head bone"
 
-    @classmethod
+    @ classmethod
     def poll(self, context):
         return Poll.check_poll(activeType="ARMATURE", activeMode="EDIT") and len(context.selected_editable_bones) > 0
 
@@ -252,7 +251,7 @@ class Subdivide_Bones(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class Gen_Bone_Copies(bpy.types.Operator):
+class GenBoneCopies(bpy.types.Operator):
     bl_idname = "armature.gen_bone_copies"
     bl_label = "Gen Bone Copies"
     bl_description = "Generates copies of bones with new prefixes. Can replace existing prefixes"
@@ -261,7 +260,7 @@ class Gen_Bone_Copies(bpy.types.Operator):
     replace: bpy.props.StringProperty(name="Replace")
     startLayer: bpy.props.IntProperty(name="StartLayer")
 
-    @classmethod
+    @ classmethod
     def poll(self, context):
         return Poll.check_poll(activeType="ARMATURE", activeMode="EDIT", minBones=1)
 
@@ -322,7 +321,7 @@ class Gen_Bone_Copies(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class Gen_Eye_Bones(bpy.types.Operator):
+class GenEyeBones(bpy.types.Operator):
     bl_idname = "armature.gen_eye_bones"
     bl_label = "Gen Eye Bones"
     bl_description = "Generates eye bones based on points selected in mesh edit mode"
@@ -427,7 +426,7 @@ class Gen_Eye_Bones(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class Gen_Constrain_Bones(bpy.types.Operator):
+class GenConstrainBones(bpy.types.Operator):
     bl_idname = "armature.gen_constrain_bones"
     bl_label = "Gen Constrain Bones"
     bl_description = "Gen bones that selected bones are constrained to"
@@ -525,7 +524,7 @@ class Gen_Constrain_Bones(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class Snap_Bones_to_Curve(bpy.types.Operator):
+class SnapBonestoCurve(bpy.types.Operator):
     bl_idname = "armature.snap_bones_curve"
     bl_label = "Snap Bones To Curve"
     bl_description = "Creates a chain of stretchy Bones with ctrl bones"
@@ -639,7 +638,7 @@ class Snap_Bones_to_Curve(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class Gen_Bone_Chain_From_Bones(bpy.types.Operator):
+class GenBoneChainFromBones(bpy.types.Operator):
     bl_idname = "armature.gen_bone_chain_from_bones"
     bl_label = "bone Chain From Bones"
     bl_description = "Creates a chain of stretchy Bones with ctrl bones"
@@ -739,7 +738,7 @@ class Gen_Bone_Chain_From_Bones(bpy.types.Operator):
 # TODO: allow for controll of roll/axis direction
 
 
-class Gen_Bone_Curve(bpy.types.Operator):
+class GenBoneCurve(bpy.types.Operator):
     bl_idname = "armature.bone_curve"
     bl_label = "bone curve"
     bl_description = "Creates a chain of Bones along a bezier curve"
